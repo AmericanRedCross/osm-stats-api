@@ -1,0 +1,22 @@
+{
+  "name": "osm-gamification-api",
+  "version": "0.0.1",
+  "description": "An API for Missing Maps statistics",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/developmentseed/osm-gamification-api.git"
+  },
+  "author": "Development Seed",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/developmentseed/osm-gamification-api/issues"
+  },
+  "homepage": "https://github.com/developmentseed/osm-gamification-api",
+  "dependencies": {
+    "hapi": "^11.1.2"
+  }
+}
