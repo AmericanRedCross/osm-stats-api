@@ -48,7 +48,7 @@ var User = bookshelf.Model.extend({
     .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
     .where('changeset_id', 'in', subquery)
     .then(function (results) {
-      return R.uniq(R.map(R.prop('hashtag'), results));
+      return R.countBy(R.identity)(R.map(R.prop('hashtag'), results));
     });
   },
   getTimestamps: function (trx) {
