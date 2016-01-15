@@ -9,11 +9,7 @@ module.exports = [
     method: 'GET',
     path: '/users',
     handler: function (req, res) {
-      User.fetchAll({columns: ['name']})
-      .then(function (hashtags) {
-        var serialized = hashtags.toJSON();
-        return R.map(R.prop('name'), serialized);
-      })
+      User.fetchAll({columns: ['id', 'name']})
       .then(res)
     }
   },
