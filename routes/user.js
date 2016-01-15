@@ -1,5 +1,6 @@
 var Boom = require('boom');
 var User = require('../models/User');
+var Changeset = require('../models/Changeset');
 var bookshelf = require('../db/bookshelf_init')
 var Promise = require('bluebird');
 var R = require('ramda');
@@ -26,7 +27,7 @@ module.exports = [
         return Promise.all([
           user.getHashtags(),
           bookshelf.knex('changesets')
-          .select('*')
+          .select('id')
           .orderBy('created_at', 'desc')
           .where('user_id', req.params.id)
           .limit(1),
@@ -40,10 +41,21 @@ module.exports = [
           var edit_times = R.map(R.prop('created_at'), results[2]);
 
           var serialized = user.toJSON();
-          serialized.latest = latest;
+          serialized.latest = latest[0].id;
           serialized.edit_times = edit_times;
           serialized.hashtags = hashtags;
           return serialized;
+        })
+      })
+      .then(function (serialized) {
+        return Changeset.where({id: serialized.latest})
+        .fetch({withRelated: ['hashtags', 'countries']})
+        .then(function (changeset) {
+          var changeset = changeset.toJSON();
+          changeset.hashtags = R.map(R.pick(['id', 'hashtag', 'created_at']),changeset.hashtags);
+          changeset.countries = R.map(R.pick(['id', 'name', 'code', 'created_at']),changeset.hashtags);
+          serialized.latest = changeset;
+          return serialized
         })
       })
       .then(res);
