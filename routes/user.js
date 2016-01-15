@@ -25,26 +25,30 @@ module.exports = [
       if (!req.params.id) {
         return res(Boom.badRequest('Valid user id required'));
       }
-      Promise.all([
-        User.where({id: req.params.id}).fetch({withRelated: 'badges'}),
-        bookshelf.knex('changesets')
-        .select('*')
-        .orderBy('created_at', 'desc')
-        .where('user_id', req.params.id)
-        .limit(1),
-        bookshelf.knex('changesets')
-        .select('created_at')
-        .where('user_id', req.params.id)
-      ])
-      .then(function (results) {
-        var user = results[0];
-        var latest = results[1];
-        var edit_times = R.map(R.prop('created_at'), results[2]);
+      User.where({id: req.params.id}).fetch({withRelated: 'badges'})
+      .then(function (user) {
+        return Promise.all([
+          user.getHashtags(),
+          bookshelf.knex('changesets')
+          .select('*')
+          .orderBy('created_at', 'desc')
+          .where('user_id', req.params.id)
+          .limit(1),
+          bookshelf.knex('changesets')
+          .select('created_at')
+          .where('user_id', req.params.id),
+        ])
+        .then(function (results) {
+          var hashtags = results[0]
+          var latest = results[1];
+          var edit_times = R.map(R.prop('created_at'), results[2]);
 
-        var serialized = user.toJSON();
-        serialized.latest = latest;
-        serialized.edit_times = edit_times;
-        return serialized;
+          var serialized = user.toJSON();
+          serialized.latest = latest;
+          serialized.edit_times = edit_times;
+          serialized.hashtags = hashtags;
+          return serialized;
+        })
       })
       .then(res);
     }
