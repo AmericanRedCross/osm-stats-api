@@ -7,6 +7,19 @@ var R = require('ramda');
 module.exports = [
   {
     method: 'GET',
+    path: '/users',
+    handler: function (req, res) {
+      User.fetchAll({columns: ['name']})
+      .then(function (hashtags) {
+        var serialized = hashtags.toJSON();
+        return R.map(R.prop('name'), serialized);
+      })
+      .then(res)
+    }
+  },
+
+  {
+    method: 'GET',
     path: '/users/{id}',
     handler: function (req, res) {
       if (!req.params.id) {
