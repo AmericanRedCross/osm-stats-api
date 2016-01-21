@@ -16,8 +16,9 @@ module.exports = [
       .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
       .select('changeset_id')
       .where('hashtags.hashtag', req.params.id);
-      bookshelf.knex('changesets')
-      .join('users', 'users.id', 'changesets.user_id')
+
+      bookshelf.knex('users')
+      .join('changesets', 'users.id', 'changesets.user_id')
       .where('changesets.id', 'in', subquery)
       .then(function (changesets) {
 
@@ -33,12 +34,12 @@ module.exports = [
         var currentPois = 0;
         var currentTotal = 0;
 
-        changesets.forEach(function (changeset, i) {
+        changesets.forEach(function (changeset) {
           currentRoads = Number(changeset.road_count_add) + Number(changeset.road_count_mod);
           currentBuildings = Number(changeset.building_count_add) + Number(changeset.building_count_mod);
           currentWaterways = Number(changeset.waterway_count_add);
           currentPois = Number(changeset.poi_count_add);
-          times[changeset.created_at.getTime()] = {
+          times[changeset.created_at] = {
             roads: currentRoads,
             buildings: currentBuildings,
             waterways: currentWaterways,
@@ -58,6 +59,7 @@ module.exports = [
           else {
             users[userId]['total'] += currentTotal;
           };
+
         });
 
         return {
