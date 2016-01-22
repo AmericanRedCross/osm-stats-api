@@ -53,7 +53,7 @@ module.exports = [
         .then(function (changeset) {
           var changeset = changeset.toJSON();
           changeset.hashtags = R.map(R.pick(['id', 'hashtag', 'created_at']),changeset.hashtags);
-          changeset.countries = R.map(R.pick(['id', 'name', 'code', 'created_at']),changeset.hashtags);
+          changeset.countries = R.map(R.pick(['id', 'name', 'code', 'created_at']),changeset.countries);
           serialized.latest = changeset;
           return serialized
         })
