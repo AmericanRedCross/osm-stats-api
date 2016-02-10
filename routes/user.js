@@ -34,18 +34,20 @@ module.exports = [
           bookshelf.knex('changesets')
           .select('created_at')
           .where('user_id', req.params.id),
-          user.getNumCountries()
+          user.getCountries()
         ])
         .then(function (results) {
           var hashtags = results[0]
           var latest = results[1];
           var edit_times = R.map(R.prop('created_at'), results[2]);
-          var countryCount = results[3];
+          var countryCount = results[3][0];
+          var countryList = R.countBy(R.prop('name'), results[3][1]);
 
           var serialized = user.toJSON();
           serialized.latest = latest[0].id;
           serialized.edit_times = edit_times;
           serialized.country_count = countryCount;
+          serialized.country_list = countryList;
           serialized.hashtags = hashtags;
           return serialized;
         })

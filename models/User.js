@@ -14,7 +14,7 @@ var User = bookshelf.Model.extend({
   badges: function () {
     return this.belongsToMany('Badge', 'badges_users');
   },
-  getNumCountries: function (trx) {
+  getCountries: function (trx) {
     // Check if we're in a transaction
     var qb = trx || bookshelf.knex;
 
@@ -24,13 +24,14 @@ var User = bookshelf.Model.extend({
     .where('user_id', this.attributes.id);
 
     // Get the country ids from the junction table
-    return qb.select('country_id')
+    return qb.select('country_id', 'name')
     .from('changesets_countries')
+    .join('countries', 'changesets_countries.country_id', 'countries.id')
     .where('changeset_id', 'in', subquery)
     .then(function (results) {
       // Pluck the country_id from results and check uniqueness
       var ids = R.uniq(R.map(R.prop('country_id'), results));
-      return ids.length;
+      return [ids.length, results];
     });
   },
   getHashtags: function (trx) {
