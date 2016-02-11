@@ -2,6 +2,12 @@ var Boom = require('boom');
 var Hashtag = require('../models/Hashtag');
 var bookshelf = require('../db/bookshelf_init')
 var Promise = require('bluebird');
+var Redis = require('ioredis');
+
+var redis_host = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1'
+var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379
+var redis = new Redis({host: redis_host, port: redis_port});
+
 var R = require('ramda');
 
 module.exports = [
@@ -106,6 +112,16 @@ module.exports = [
               }
             }, rows));
           });
+    }
+  },
+  {
+    method: 'GET',
+    path: '/hashtags/{id}/map',
+    handler: function (req, res) {
+      redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
+      .then(function (elements) {
+        return elements.map(JSON.parse);
+      }).then(res)
     }
   },
   {
