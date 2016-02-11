@@ -78,6 +78,38 @@ module.exports = [
   },
   {
     method: 'GET',
+    path: '/hashtags/{id}/users',
+    handler: function (req, res) {
+      var subquery = bookshelf.knex('changesets_hashtags')
+      .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
+      .select('changeset_id')
+      .where('hashtags.hashtag', req.params.id);
+
+      var knex = bookshelf.knex;
+      knex.select('user_id', 'name', knex.raw('COUNT(*) as edits'),
+                  knex.raw('SUM(road_km_mod + road_km_add) as roads'),
+                  knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
+                  knex.raw('MAX(changesets.created_at) as created_at'))
+          .from('changesets')
+          .join('users', 'changesets.user_id', 'users.id')
+          .where('changesets.id', 'in', subquery)
+          .groupBy('name', 'user_id')
+          .then(function (rows) {
+            return res(R.map(function (row) {
+              return {
+                "name": row.name,
+                "user_id": row.user_id,
+                "edits": Number(row.edits),
+                "roads": Number(Number(row.roads).toFixed(3)),
+                "buildings": parseInt(row.buildings),
+                "created_at": row.created_at
+              }
+            }, rows));
+          });
+    }
+  },
+  {
+    method: 'GET',
     path: '/hashtags',
     handler: function (req, res) {
       Hashtag.fetchAll({columns: ['hashtag']})
