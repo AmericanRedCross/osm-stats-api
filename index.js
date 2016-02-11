@@ -7,7 +7,7 @@ var server = new Hapi.Server({
     }
   },
 });
-server.connection({port: process.env.API_PORT || 3000});
+server.connection({port: process.env.API_PORT || process.env.PORT || 3000});
 
 // Register routes
 server.register({
