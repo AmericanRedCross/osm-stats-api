@@ -3,9 +3,14 @@ var Hashtag = require('../models/Hashtag');
 var bookshelf = require('../db/bookshelf_init')
 var Promise = require('bluebird');
 var Redis = require('ioredis');
+var request = require('request-promise');
 
 var redis_host = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1'
 var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379
+
+var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1'
+var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080
+
 var redis = new Redis({host: redis_host, port: redis_port});
 
 var R = require('ramda');
@@ -128,10 +133,20 @@ module.exports = [
     method: 'GET',
     path: '/hashtags',
     handler: function (req, res) {
-      Hashtag.fetchAll({columns: ['hashtag']})
-      .then(function (hashtags) {
+      Promise.all([
+        Hashtag.fetchAll({columns: ['hashtag']}),
+        request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
+      ])
+      .then(function (results) {
+        console.log(results);
+        hashtags = results[0];
+        distribution = JSON.parse(results[1]);
         var serialized = hashtags.toJSON();
-        return R.map(R.prop('hashtag'), serialized);
+        var hashtaglist = R.map(R.prop('hashtag'), serialized);
+        return {
+          hashtags: hashtaglist,
+          trending: R.map(R.prop('bin'), distribution.data.data)
+        }
       })
       .then(res);
     }
