@@ -138,7 +138,6 @@ module.exports = [
         request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
       ])
       .then(function (results) {
-        console.log(results);
         hashtags = results[0];
         distribution = JSON.parse(results[1]);
         var serialized = hashtags.toJSON();
