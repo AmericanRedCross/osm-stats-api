@@ -22,7 +22,13 @@ module.exports = [
       if (!req.params.id) {
         return res(Boom.badRequest('Valid user id required'));
       }
-      User.where({id: req.params.id}).fetch({withRelated: 'badges'})
+      User.where({id: req.params.id}).fetch({withRelated: [{
+        'badges': function (qb) {
+          qb.select('badges_users.created_at',
+                    'badges.id', 'badges.category',
+                    'badges.level', 'badges.name');
+        }
+      }]})
       .then(function (user) {
         return Promise.all([
           user.getHashtags(),
