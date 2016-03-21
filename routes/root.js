@@ -6,7 +6,7 @@ var Promise = require('bluebird');
 MissingMaps began tracking OSM edit statistics in January 2016,
 and this endpoint provides summary statistics for changesets
 submitted after that date. The user count is an exception, as it
-represent the entirety of participating users since 2014.
+represents the entirety of participating users since 2014.
 
 On the MissingMaps.org website, these statistics
 are combined with a pre-2016 snapshot of edit statistics to
