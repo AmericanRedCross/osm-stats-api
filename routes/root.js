@@ -33,7 +33,11 @@ module.exports = [
       ]).then(function (results) {
         const edits = results[0][0];
         const users = results[1][0].users;
-        edits.users = users;
+        edits.users = Number(edits.users);
+        edits.changesets = Number(edits.changesets);
+        edits.buildings = Number(edits.buildings);
+        edits.roads = Number(edits.roads);
+        edits.edits = Number(edits.edits);
         return edits;
       }).then(res)
     }
