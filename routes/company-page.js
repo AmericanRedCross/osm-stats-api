@@ -58,14 +58,15 @@ module.exports = [
                         SUM(building_count_add + building_count_mod) AS buildings, \
                         SUM(road_count_add + road_count_mod) AS roads, \
                         SUM(road_km_add + road_km_mod) AS road_kms, \
-                        users.name AS user_id \
+                        users.name AS user_id, \
+                        users.id AS user_number \
                       FROM changesets \
                       JOIN (SELECT DISTINCT(changeset_id) FROM changesets_hashtags \
                         JOIN hashtags ON changesets_hashtags.hashtag_id=hashtags.id \
                         WHERE hashtag='" + hashtag + "') AS filtered \
                       ON changesets.id=filtered.changeset_id \
                       LEFT JOIN users on users.id = changesets.user_id \
-                      GROUP BY users.name \
+                      GROUP BY users.name, users.id \
                       ORDER BY all_edits DESC \
                       LIMIT 5"
       )
