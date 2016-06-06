@@ -28,7 +28,9 @@ module.exports = [
                     'badges.id', 'badges.category',
                     'badges.level', 'badges.name');
         }
-      }]})
+        }],
+          require: true
+        })
       .then(function (user) {
         return Promise.all([
           user.getHashtags(),
@@ -74,7 +76,14 @@ module.exports = [
           return serialized
         })
       })
-      .then(res);
+      .then(res)
+      .catch(function (err) {
+        if (err.message && err.message === 'EmptyResponse') {
+          res(Boom.notFound('user not found'));
+        } else {
+          res(Boom.badImplementation('error retrieving user'));
+        }
+      });
     }
   }
 ]
