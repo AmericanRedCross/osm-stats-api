@@ -97,9 +97,12 @@ module.exports = [
       .where('hashtags.hashtag', req.params.id);
 
       var knex = bookshelf.knex;
-      knex.select('user_id', 'name', knex.raw('COUNT(*) as edits'),
+      knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
                   knex.raw('SUM(road_km_mod + road_km_add) as roads'),
                   knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
+                  knex.raw('SUM(building_count_add + building_count_mod + \
+                            road_count_add + road_count_mod + \
+                            waterway_count_add + poi_count_add) as edits'),
                   knex.raw('MAX(changesets.created_at) as created_at'))
           .from('changesets')
           .join('users', 'changesets.user_id', 'users.id')
@@ -111,6 +114,7 @@ module.exports = [
                 "name": row.name,
                 "user_id": row.user_id,
                 "edits": Number(row.edits),
+                "changesets": Number(row.changesets),
                 "roads": Number(Number(row.roads).toFixed(3)),
                 "buildings": parseInt(row.buildings),
                 "created_at": row.created_at
