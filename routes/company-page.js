@@ -25,7 +25,7 @@ module.exports = [
                         SUM(waterway_km_add) AS waterway_km_add, \
                         hashtag \
                       FROM changesets JOIN \
-                        (SELECT changeset_id, hashtag FROM changesets_hashtags \
+                        (SELECT DISTINCT changeset_id, hashtag FROM changesets_hashtags \
                         JOIN hashtags ON changesets_hashtags.hashtag_id=hashtags.id \
                         WHERE hashtag IN (" + hashtags + ")) AS filtered \
                       ON changesets.id=filtered.changeset_id \
