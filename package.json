@@ -1,6 +1,6 @@
 {
-  "name": "osm-gamification-api",
-  "version": "0.0.1",
+  "name": "osm-stats-api",
+  "version": "0.3.3",
   "description": "An API for Missing Maps statistics",
   "main": "index.js",
   "scripts": {
