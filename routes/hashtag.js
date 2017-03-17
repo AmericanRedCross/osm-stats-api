@@ -82,15 +82,7 @@ function allHashtagData (req, res) {
     })
     .then(res);
 }
-module.exports = [{
-  // This method is taking a lot of memory and crashing
-  // We disable it for now
-  // {
-  //   method: 'GET',
-  //   path: '/hashtags/{id}',
-  //   handler: allHashtagData
-  // }
-},
+module.exports = [
 {
   method: 'GET',
   path: '/hashtags/{id}/users',
