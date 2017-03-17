@@ -135,7 +135,7 @@ module.exports = [
   method: 'GET',
   path: '/hashtags',
   handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
+    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     Promise.all([
       Hashtag.fetchAll({columns: ['hashtag']}),
       request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
