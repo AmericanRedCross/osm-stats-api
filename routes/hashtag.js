@@ -82,7 +82,7 @@ function allHashtagData (req, res) {
     })
     .then(res);
 }
-module.exports = [
+module.exports = [{
   // This method is taking a lot of memory and crashing
   // We disable it for now
   // {
