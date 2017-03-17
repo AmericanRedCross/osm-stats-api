@@ -9,7 +9,7 @@ module.exports = [
     method: 'GET',
     path: '/badges',
     handler: function (req, res) {
-      console.log(req);
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
       Badge.fetchAll({withRelated: 'users'}).then(res);
     }
   }

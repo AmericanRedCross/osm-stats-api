@@ -8,7 +8,7 @@ module.exports = [
     method: 'GET',
     path: '/group-summaries/{hashtags}',
     handler: function (req, res) {
-      console.log(req);
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
       if (!req.params.hashtags) {
         return res(Boom.badRequest('Valid, comma-separated hashtags required'));
       };
@@ -47,7 +47,7 @@ module.exports = [
     method: 'GET',
     path: '/top-users/{hashtag}',
     handler: function (req, res) {
-      console.log(req);
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
       if (!req.params.hashtag) {
         return res(Boom.badRequest('Valid hashtag required'));
       };
