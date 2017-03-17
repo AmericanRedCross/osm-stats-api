@@ -18,6 +18,7 @@ module.exports = [
     method: 'GET',
     path: '/stats/{hashtag?}',
     handler: function (req, res) {
+      console.log(req);
       const knex = bookshelf.knex;
 
       var stats_table = knex

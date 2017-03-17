@@ -10,6 +10,7 @@ module.exports = [
     method: 'GET',
     path: '/users',
     handler: function (req, res) {
+      console.log(req);
       User.fetchAll({columns: ['id', 'name']})
       .then(res)
     }
@@ -19,6 +20,7 @@ module.exports = [
     method: 'GET',
     path: '/users/{id}',
     handler: function (req, res) {
+      console.log(req);
       if (!req.params.id) {
         return res(Boom.badRequest('Valid user id required'));
       }
