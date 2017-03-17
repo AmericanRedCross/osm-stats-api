@@ -87,7 +87,7 @@ module.exports = [
   method: 'GET',
   path: '/hashtags/{id}/users',
   handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
+    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     var subquery = bookshelf.knex('changesets_hashtags')
           .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
           .select('changeset_id')
@@ -124,7 +124,7 @@ module.exports = [
   method: 'GET',
   path: '/hashtags/{id}/map',
   handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path + ' --> ' + req.response.statusCode);
+    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
       .then(function (elements) {
         return elements.map(JSON.parse);
