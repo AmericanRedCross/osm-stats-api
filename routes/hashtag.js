@@ -125,13 +125,14 @@ module.exports = [
   path: '/hashtags/{id}/map',
   handler: function (req, res) {
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
-    redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
-      .then(function (elements) {
-        return elements.map(JSON.parse);
-      }).then(res)
-      .catch(function (err) {
-        return []
-      });
+    try {
+      redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
+        .then(function (elements) {
+          return elements.map(JSON.parse);
+        }).then(res)
+    } catch (e) {
+      return []
+    }
   }
 },
 {
