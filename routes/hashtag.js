@@ -129,6 +129,9 @@ module.exports = [
       .then(function (elements) {
         return elements.map(JSON.parse);
       }).then(res)
+      .catch(function (err) {
+        return []
+      });
   }
 },
 {
