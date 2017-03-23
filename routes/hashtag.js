@@ -145,18 +145,18 @@ module.exports = [
   handler: function (req, res) {
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     Promise.all([
-      Hashtag.fetchAll({columns: ['hashtag']}) /*,
-      request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')*/
+      Hashtag.fetchAll({columns: ['hashtag']}),
+      request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
     ])
       .then(function (results) {
         hashtags = results[0];
-        //distribution = JSON.parse(results[1]);
+        distribution = JSON.parse(results[1]);
         var serialized = hashtags.toJSON();
         var hashtaglist = R.map(R.prop('hashtag'), serialized);
         return {
           hashtags: hashtaglist,
-          trending: []
-          //trending: R.map(R.prop('bin'), distribution.data.data)
+          //trending: []
+          trending: R.map(R.prop('bin'), distribution.data.data)
         }
       })
       .then(res);
