@@ -24,10 +24,11 @@ function allHashtagData (req, res) {
         .select('changeset_id')
         .where('hashtags.hashtag', req.params.id);
 
-  bookshelf.knex('users')
+  var q = bookshelf.knex('users')
     .join('changesets', 'users.id', 'changesets.user_id')
-    .where('changesets.id', 'in', subquery)
-    .then(function (changesets) {
+    .where('changesets.id', 'in', subquery);
+  console.log(q.toString());
+  q.then(function (changesets) {
 
       var times = {};
       var users = {};
@@ -103,11 +104,9 @@ module.exports = [
                 knex.raw('MAX(changesets.created_at) as created_at'))
       .from('changesets')
       .join('users', 'changesets.user_id', 'users.id')
-      .join('changesets_hashtags', 'changesets.id', 'changesets_hashtags.changeset_id')
-      .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
-      .where('hashtags.hashtag', req.params.id)
-      .groupBy('name', 'user_id');
-    console.log(q.toSQL());
+      .where('changesets.id', 'in', subquery)
+      .groupBy('name', 'user_id')
+    console.log(q.toString());
     q.then(function (rows) {
         return res(R.map(function (row) {
           return {

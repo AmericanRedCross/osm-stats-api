@@ -38,7 +38,7 @@ module.exports = [
 
         stats_table = stats_table.whereIn('id', filtered_table);
       }
-
+      console.log(stats_table.toString());
       stats_table
         .then(function (results) {
           var retval = Object.assign({}, results[0]);
