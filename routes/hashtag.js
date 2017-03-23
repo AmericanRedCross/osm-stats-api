@@ -89,11 +89,13 @@ module.exports = [
   path: '/hashtags/{id}/users',
   handler: function (req, res) {
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
+    var hashtag_id = bookshelf.knex('hashtags').where('hashtags.hashtag', req.params.id).select('id')
     var subquery = bookshelf.knex('changesets_hashtags')
-          .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
           .distinct('changeset_id')
           .select()
-          .where('hashtags.hashtag', req.params.id);
+          .where('hashtag_id', hashtag_id);
+    console.log(hashtag_id.toString());
+    console.log(subquery.toString());
 
     var knex = bookshelf.knex;
     var q = knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
