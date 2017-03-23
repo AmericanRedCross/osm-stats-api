@@ -94,8 +94,6 @@ module.exports = [
           .distinct('changeset_id')
           .select()
           .where('hashtag_id', hashtag_id);
-    console.log(hashtag_id.toString());
-    console.log(subquery.toString());
 
     var knex = bookshelf.knex;
     var q = knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
@@ -147,17 +145,18 @@ module.exports = [
   handler: function (req, res) {
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     Promise.all([
-      Hashtag.fetchAll({columns: ['hashtag']}),
-      request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
+      Hashtag.fetchAll({columns: ['hashtag']}) /*,
+      request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')*/
     ])
       .then(function (results) {
         hashtags = results[0];
-        distribution = JSON.parse(results[1]);
+        //distribution = JSON.parse(results[1]);
         var serialized = hashtags.toJSON();
         var hashtaglist = R.map(R.prop('hashtag'), serialized);
         return {
           hashtags: hashtaglist,
-          trending: R.map(R.prop('bin'), distribution.data.data)
+          trending: []
+          //trending: R.map(R.prop('bin'), distribution.data.data)
         }
       })
       .then(res);
