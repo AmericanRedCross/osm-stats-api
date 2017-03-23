@@ -105,8 +105,12 @@ module.exports = [
                 knex.raw('MAX(changesets.created_at) as created_at'))
       .from('changesets')
       .join('users', 'changesets.user_id', 'users.id')
-      .where('changesets.id', 'in', subquery)
-      .groupBy('name', 'user_id')
+      .join('changesets_hashtags', 'changesets.id', 'changesets_hashtags.changeset_id')
+      .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
+      .where('hashtags.hashtag', req.params.id)
+      .distinct('changesets.id')
+      .select()
+      .groupBy('name', 'user_id');
     console.log(q.toString());
     q.then(function (rows) {
         return res(R.map(function (row) {
