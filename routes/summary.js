@@ -31,7 +31,7 @@ module.exports = [
             .from('changesets');
 
       if (req.params.hashtag) {
-        var hashtag_id = bookshelf.knex('hashtags').where('hashtags.hashtag', req.params.id).select('id')
+        var hashtag_id = bookshelf.knex('hashtags').where('hashtags.hashtag', req.params.hashtag).select('id')
         var filtered_table = bookshelf.knex('changesets_hashtags')
               .distinct('changeset_id')
               .select()
