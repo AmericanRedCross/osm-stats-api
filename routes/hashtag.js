@@ -107,6 +107,9 @@ module.exports = [
       .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
       .where('hashtags.hashtag', req.params.id)
       .groupBy('name', 'user_id')
+      .on('query', function(data) {
+        console.log(data)
+      })
       .then(function (rows) {
         return res(R.map(function (row) {
           return {
