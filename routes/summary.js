@@ -31,10 +31,11 @@ module.exports = [
             .from('changesets');
 
       if (req.params.hashtag) {
-        const filtered_table = knex.select('changeset_id')
-                .from('changesets_hashtags')
-                .join('hashtags', 'changesets_hashtags.hashtag_id', '=', 'hashtags.id')
-                .where('hashtags.hashtag', '=', req.params.hashtag);
+        var hashtag_id = bookshelf.knex('hashtags').where('hashtags.hashtag', req.params.id).select('id')
+        var filtered_table = bookshelf.knex('changesets_hashtags')
+              .distinct('changeset_id')
+              .select()
+              .where('hashtag_id', hashtag_id);
 
         stats_table = stats_table.whereIn('id', filtered_table);
       }
