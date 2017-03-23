@@ -91,7 +91,8 @@ module.exports = [
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     var subquery = bookshelf.knex('changesets_hashtags')
           .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
-          .select('DISTINCT changeset_id')
+          .distinct('changeset_id')
+          .select()
           .where('hashtags.hashtag', req.params.id);
 
     var knex = bookshelf.knex;
