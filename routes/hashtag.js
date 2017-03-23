@@ -91,7 +91,7 @@ module.exports = [
     console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
     var subquery = bookshelf.knex('changesets_hashtags')
           .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
-          .select('changeset_id')
+          .select('DISTINCT changeset_id')
           .where('hashtags.hashtag', req.params.id);
 
     var knex = bookshelf.knex;
@@ -104,10 +104,8 @@ module.exports = [
                 knex.raw('MAX(changesets.created_at) as created_at'))
       .from('changesets')
       .join('users', 'changesets.user_id', 'users.id')
-      .join('changesets_hashtags', 'changesets.id', 'changesets_hashtags.changeset_id')
-      .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
-      .where('hashtags.hashtag', req.params.id)
-      .groupBy('name', 'user_id');
+      .where('changesets.id', 'in', subquery)
+      .groupBy('name', 'user_id')
     console.log(q.toString());
     q.then(function (rows) {
         return res(R.map(function (row) {
