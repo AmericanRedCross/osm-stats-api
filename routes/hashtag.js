@@ -94,7 +94,7 @@ module.exports = [
           .where('hashtags.hashtag', req.params.id);
 
     var knex = bookshelf.knex;
-    knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
+    var q = knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
                 knex.raw('SUM(road_km_mod + road_km_add) as roads'),
                 knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
                 knex.raw('SUM(building_count_add + building_count_mod + \
@@ -106,11 +106,9 @@ module.exports = [
       .join('changesets_hashtags', 'changesets.id', 'changesets_hashtags.changeset_id')
       .join('hashtags', 'changesets_hashtags.hashtag_id', 'hashtags.id')
       .where('hashtags.hashtag', req.params.id)
-      .groupBy('name', 'user_id')
-      .on('query', function(data) {
-        console.log(data)
-      })
-      .then(function (rows) {
+      .groupBy('name', 'user_id');
+    console.log(q.toSQL());
+    q.then(function (rows) {
         return res(R.map(function (row) {
           return {
             "name": row.name,
