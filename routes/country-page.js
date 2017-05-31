@@ -3,12 +3,48 @@
 const Boom = require('boom');
 const bookshelf = require('../db/bookshelf_init');
 
+// figure out how to map the country name to its id?
+
 module.exports = [
   {
     method:'GET',
-    path: '/country/{hashtags}',
+    path: '/{country}/{hashtags}',
     handler: function(req, res) {
-      return res("up and running")
+      const knex = bookshelf.knex;
+      const hashtags = req.params.hashtags.split(',').join("','") + "'";
+      // force title case
+      const country = req.params.country.split(' ').map(l =>
+        l[0].toUpperCase() + l.substr(1).toLowerCase())
+      return knex.raw("select * FROM countries WHERE name IN ('" + country +"')")
+      .then(function (results) {
+        var country_id = results.rows[0].id
+        return country_id
+      }).then(function (country_id) {
+        var hashtag_ids = knex.raw("SELECT distinct hashtag_id FROM changesets_hashtags WHERE changeset_id IN \
+          (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ");")
+        return [hashtag_ids,country_id]
+      }).then(
+        function (country_results) {
+          var hashtag_ids_here = country_results[0]
+          // rows.map(function(d) {return d.hashtag_id})
+          // return hashtag_ids.map((d) => {return knex.raw("\
+          //   SELECT \
+          //     SUM(road_count_add) AS road_count_add \
+          //     SUM(building_count_add) AS building_count_add \
+          //     SUM(building_count_mod) AS building_count_mod \
+          //     SUM(waterway_count_add) AS waterway_count_add \
+          //     SUM(poi_count_add) AS poi_count_add \
+          //     SUM(road_km_add) AS road_km_add \
+          //     SUM(road_km_mod) AS road_km_mod\
+          //     SUM(waterway_km_add) AS waterway_km_add \
+          //   FROM changesets WHERE id IN \
+          //     (SELECT changeset_id FROM changesets_hashtags WHERE changeset_id IN \
+          //       (SELECT changeset_id FROM changeset_countries WHERE country_id=" + country_id + ")\
+          //       AND hashtag_id=" + d + ")")
+          // })
+          return hashtag_ids_here
+      })
+      .then(res)
     }
   }
 ]
