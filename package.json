@@ -1,6 +1,6 @@
 {
   "name": "osm-stats-api",
-  "version": "0.3.3",
+  "version": "0.4.1",
   "description": "An API for Missing Maps statistics",
   "main": "index.js",
   "scripts": {
