@@ -42,12 +42,10 @@ module.exports = [
               (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) AS filtered \
             ON changesets.id=filtered.changeset_id\
             GROUP by filtered.hashtag_id;"
-          )
-//         var hashtag_ids = knex.raw("select distinct hashtag_id from changesets_hashtags where changeset_id \
-// in (select changeset_id from changesets_countries where country_id=171);")
+          ).rows
         return hashtag_ids
       })
-      .then(function(hashtag_id_results) {return hashtag_id_results.rows})
+      .then(function(hashtag_id_results) {return hashtag_id_resuts.rows})
       .then(res)
     }
   }
