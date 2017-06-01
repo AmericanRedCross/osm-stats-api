@@ -3,15 +3,14 @@
 const Boom = require('boom');
 const bookshelf = require('../db/bookshelf_init');
 
-// figure out how to map the country name to its id?
 
 module.exports = [
+  // returns stats for all hashtags in a country 
   {
     method:'GET',
-    path: '/{country}/{hashtags}',
+    path: '/{country}/',
     handler: function(req, res) {
       const knex = bookshelf.knex;
-      const hashtags = req.params.hashtags.split(',').join("','") + "'";
       // force title case
       const country = req.params.country.split(' ').map(l =>
         l[0].toUpperCase() + l.substr(1).toLowerCase())
@@ -35,17 +34,19 @@ module.exports = [
             SUM(road_km_add) AS road_km_add, \
             SUM(road_km_mod) AS road_km_mod, \
             SUM(waterway_km_add) AS waterway_km_add, \
-            filtered.hashtag_id\
+            filtered.hashtag\
           FROM changesets JOIN\
-            (SELECT hashtag_id, changeset_id FROM changesets_hashtags \
+            (SELECT hashtag, id, changeset_id FROM \
+              (SELECT hashtags.id, hashtags.hashtag, changesets_hashtags.changeset_id FROM hashtags \
+              JOIN changesets_hashtags ON hashtags.id = changesets_hashtags.hashtag_id) AS hashtag_changesets_joined\
               WHERE changeset_id IN \
-              (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) AS filtered \
+              (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) \
+               AS filtered \
             ON changesets.id=filtered.changeset_id\
-            GROUP by filtered.hashtag_id;"
-          ).rows
+            GROUP by filtered.hashtag;"
+          )
         return hashtag_ids
       })
-      .then(function(hashtag_id_results) {return hashtag_id_resuts.rows})
       .then(res)
     }
   }
