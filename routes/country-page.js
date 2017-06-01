@@ -5,7 +5,7 @@ const bookshelf = require('../db/bookshelf_init');
 
 
 module.exports = [
-  // returns stats for all hashtags in a country 
+  // returns stats for all hashtags in a country
   {
     method:'GET',
     path: '/{country}/',
@@ -19,10 +19,8 @@ module.exports = [
         var country_id = results.rows[0].id
         return country_id
       }).then(function (country_id) {
-        // join changesets with changesets_hashtags
-        // do that only where changesets_hashtags.id are those in a given country
-        // select all the changesets_ids,hashtag_ids for country
-        // next I want to join all in the
+        // for given country_id
+        // returns stats for all hashtags and name of hashtag
         var hashtag_ids = knex.raw(
           "SELECT \
             SUM(road_count_add) AS road_count_add, \
