@@ -23,7 +23,10 @@ module.exports = [
         // returns stats for all hashtags and name of hashtag
         var hashtag_ids = knex.raw(
           "SELECT \
-            SUM(road_count_add) AS road_count_add, \
+            SUM(building_count_add + building_count_mod + \
+                road_count_add + road_count_mod + \
+                waterway_count_add + poi_count_add) AS all_edits, \
+              SUM(road_count_add) AS road_count_add, \
             SUM(road_count_mod) AS road_count_mod, \
             SUM(building_count_add) AS building_count_add, \
             SUM(building_count_mod) AS building_count_mod, \
@@ -65,6 +68,9 @@ module.exports = [
       .then(function (country_id) {
         var user_ids = knex.raw(
           "SELECT \
+            SUM(building_count_add + building_count_mod + \
+                road_count_add + road_count_mod + \
+                waterway_count_add + poi_count_add) AS all_edits, \
              SUM(road_count_add) AS road_count_add, \
              SUM(road_count_mod) AS road_count_mod, \
              SUM(building_count_add) AS building_count_add,  \
