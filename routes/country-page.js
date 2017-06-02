@@ -5,6 +5,21 @@ const bookshelf = require('../db/bookshelf_init');
 
 
 module.exports = [
+  // returns list of available countries
+  {
+    method:'GET',
+    path: '/countries',
+    handler: function(req, res) {
+      const knex = bookshelf.knex;
+      return knex.raw("SELECT name FROM countries;")
+      .then(function(results) {
+        return results.rows.map((d) => {
+          return d.name
+        })
+      })
+      .then(res)
+    }
+  },
   // returns stats for all hashtags in a country
   {
     method:'GET',
