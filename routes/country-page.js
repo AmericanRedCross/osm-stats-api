@@ -44,6 +44,8 @@ module.exports = [
             GROUP by filtered.hashtag;"
           )
         return hashtag_ids
+      }).then(function(hashtag_ids_results) {
+        return hashtag_ids_results.rows
       })
       .then(res)
     }
@@ -83,6 +85,8 @@ module.exports = [
           GROUP by filtered.name \
         ")
         return user_ids
+      }).then(function(user_ids_results) {
+        return user_ids_results.rows
       })
       .then(res)
     }
