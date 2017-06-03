@@ -138,16 +138,17 @@ module.exports = [
              SUM(poi_count_add) AS poi_count_add,  \
              SUM(road_km_add) AS road_km_add,  \
              SUM(road_km_mod) AS road_km_mod, \
-             filtered.name \
+             filtered.name, \
+             filtered.user_id \
           FROM changesets JOIN \
-            (SELECT name, id FROM \
-              (SELECT users.name, changesets.id FROM users \
+            (SELECT name, id, user_id FROM \
+              (SELECT users.name, users.id as user_id, changesets.id FROM users \
               JOIN changesets ON users.id = changesets.user_id) AS hashtag_changesets_joined \
             WHERE id IN \
               (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) \
             AS filtered \
           ON changesets.id=filtered.id \
-          GROUP by filtered.name \
+          GROUP by filtered.name, filtered.user_id \
         ")
         return user_ids
       }).then(function(user_ids_results) {
