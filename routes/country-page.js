@@ -1,47 +1,42 @@
 'use strict';
 
-const Boom = require('boom');
 const bookshelf = require('../db/bookshelf_init');
-
 
 module.exports = [
   // returns list of available countries
   {
-    method:'GET',
+    method: 'GET',
     path: '/countries',
-    handler: function(req, res) {
+    handler: function (req, res) {
       const knex = bookshelf.knex;
-      return knex.raw("SELECT name, code FROM countries;")
-      .then(function(results) {
-        // remove us states from list, then end at 51th element in returned list
-        var country_names_codes = results.rows.map((d) => {
-          // const index = results.rows.findIndex(d)
-          var index = parseInt(results.rows.indexOf(d))
-          if(index > 51) {return [d.name, d.code.substr(0,3)]}
-        })
+      return knex.raw("SELECT name, code FROM countries WHERE code !~'USA-' ;")
+      .then(function (results) {
+        var countryNamesCodes = results.rows.map((d) => {
+          var index = parseInt(results.rows.indexOf(d));
+          if (index > 51) { return [d.name, d.code.substr(0, 3)]; }
+        });
         // get rid of nulls and return
-        return country_names_codes.filter((d) => {return d != null})
+        return countryNamesCodes.filter((d) => { return d != null; });
       })
-      .then(res)
+      .then(res);
     }
   },
   // returns stats for all hashtags in a country
   {
-    method:'GET',
+    method: 'GET',
     path: '/{country}/hashtags',
-    handler: function(req, res) {
+    handler: function (req, res) {
       const knex = bookshelf.knex;
       // force title case
-      const country = req.params.country.split(' ').map(l =>
-        l[0].toUpperCase() + l.substr(1).toLowerCase()).join(" ")
-      return knex.raw("select * FROM countries WHERE name IN ('" + country +"')")
+      const country = req.params.country.toUpperCase();
+      return knex.raw("select * FROM countries WHERE code = '" + country + "';")
       .then(function (results) {
-        return results.rows[0].id
-      }).then(function (country_id) {
+        return results.rows[0].id;
+      }).then(function (countryId) {
         // for given country_id
         // returns stats for all hashtags and name of hashtag
-        var hashtag_ids = knex.raw(
-          "SELECT \
+        var hashtagIds = knex.raw(
+          'SELECT \
             SUM(building_count_add + building_count_mod + \
                 road_count_add + road_count_mod + \
                 waterway_count_add + poi_count_add) AS all_edits, \
@@ -60,33 +55,33 @@ module.exports = [
               (SELECT hashtags.id, hashtags.hashtag, changesets_hashtags.changeset_id FROM hashtags \
               JOIN changesets_hashtags ON hashtags.id = changesets_hashtags.hashtag_id) AS hashtag_changesets_joined\
               WHERE changeset_id IN \
-              (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) \
+              (SELECT changeset_id FROM changesets_countries WHERE country_id = ' + countryId + ')) \
                AS filtered \
             ON changesets.id=filtered.changeset_id\
-            GROUP by filtered.hashtag;"
-          )
-        return hashtag_ids
-      }).then(function(hashtag_ids_results) {
-        return hashtag_ids_results.rows
+            GROUP by filtered.hashtag;'
+          );
+        return hashtagIds;
+      }).then(function (hashtagIdsResults) {
+        return hashtagIdsResults.rows;
       })
-      .then(res)
+      .then(res);
     }
   },
   // return stats for entire country
   {
-    method:'GET',
+    method: 'GET',
     path: '/{country}',
-    handler: function(req, res) {
+    handler: function (req, res) {
       const knex = bookshelf.knex;
       // force title case
-      const country = req.params.country.split(' ').map(l =>
-        l[0].toUpperCase() + l.substr(1).toLowerCase()).join(" ")
-      return knex.raw("select * FROM countries WHERE name IN ('" + country +"')")
-      .then(function(results) {
-        return results.rows[0].id
-      }).then(function (country_id) {
-        var country_stats = knex.raw(
-          "SELECT \
+      const country = req.params.country.toUpperCase();
+      return knex.raw("select * FROM countries WHERE code = '" + country + "';")
+      .then(function (results) {
+        return results.rows[0].id;
+      })
+      .then(function (countryId) {
+        var countryStats = knex.raw(
+          'SELECT \
             SUM(building_count_add + building_count_mod + \
                 road_count_add + road_count_mod + \
                 waterway_count_add + poi_count_add) AS all_edits, \
@@ -104,32 +99,31 @@ module.exports = [
               (SELECT users.name, changesets.id FROM users \
               JOIN changesets ON users.id = changesets.user_id) AS filtered \
             WHERE id IN \
-              (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) \
+              (SELECT changeset_id FROM changesets_countries WHERE country_id = ' + countryId + ')) \
             AS filtered \
-          ON changesets.id=filtered.id;"
-        )
-        return country_stats
-      }).then(function(country_stats_results) {
-        return country_stats_results.rows
+          ON changesets.id=filtered.id;'
+        );
+        return countryStats;
+      }).then(function (countryStatsResults) {
+        return countryStatsResults.rows;
       })
-      .then(res)
+      .then(res);
     }
   },
   {
     method: 'GET',
-    path: "/{country}/users",
-    handler: function(req, res) {
-      const knex = bookshelf.knex
-      const country = req.params.country.split(' ').map(l =>
-        l[0].toUpperCase() + l.substr(1).toLowerCase()).join(" ")
-      return knex.raw("select * FROM countries WHERE name IN ('" + country + "')")
+    path: '/{country}/users',
+    handler: function (req, res) {
+      const knex = bookshelf.knex;
+      const country = req.params.country.toUpperCase()
+      return knex.raw("select * FROM countries WHERE code ='" + country + "';")
       .then(function (results) {
-        var country_id = results.rows[0].id
-        return country_id
+        var countryId = results.rows[0].id;
+        return countryId;
       })
-      .then(function (country_id) {
-        var user_ids = knex.raw(
-          "SELECT \
+      .then(function (countryId) {
+        var userIds = knex.raw(
+          'SELECT \
             SUM(building_count_add + building_count_mod + \
                 road_count_add + road_count_mod + \
                 waterway_count_add + poi_count_add) AS all_edits, \
@@ -148,16 +142,16 @@ module.exports = [
               (SELECT users.name, users.id as user_id, changesets.id FROM users \
               JOIN changesets ON users.id = changesets.user_id) AS hashtag_changesets_joined \
             WHERE id IN \
-              (SELECT changeset_id FROM changesets_countries WHERE country_id = " + country_id + ")) \
+              (SELECT changeset_id FROM changesets_countries WHERE country_id = ' + countryId + ')) \
             AS filtered \
           ON changesets.id=filtered.id \
           GROUP by filtered.name, filtered.user_id \
-        ")
-        return user_ids
-      }).then(function(user_ids_results) {
-        return user_ids_results.rows
+        ');
+        return userIds;
+      }).then(function (userIdsResults) {
+        return userIdsResults.rows;
       })
-      .then(res)
+      .then(res);
     }
   }
-]
+];
