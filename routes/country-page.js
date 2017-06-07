@@ -11,11 +11,16 @@ module.exports = [
     path: '/countries',
     handler: function(req, res) {
       const knex = bookshelf.knex;
-      return knex.raw("SELECT name FROM countries;")
+      return knex.raw("SELECT name, code FROM countries;")
       .then(function(results) {
-        return results.rows.map((d) => {
-          return d.name
+        // remove us states from list, then end at 51th element in returned list
+        var country_names_codes = results.rows.map((d) => {
+          // const index = results.rows.findIndex(d)
+          var index = parseInt(results.rows.indexOf(d))
+          if(index > 51) {return [d.name, d.code.substr(0,3)]}
         })
+        // get rid of nulls and return
+        return country_names_codes.filter((d) => {return d != null})
       })
       .then(res)
     }
@@ -31,8 +36,7 @@ module.exports = [
         l[0].toUpperCase() + l.substr(1).toLowerCase()).join(" ")
       return knex.raw("select * FROM countries WHERE name IN ('" + country +"')")
       .then(function (results) {
-        var country_id = results.rows[0].id
-        return country_id
+        return results.rows[0].id
       }).then(function (country_id) {
         // for given country_id
         // returns stats for all hashtags and name of hashtag
@@ -78,9 +82,8 @@ module.exports = [
       const country = req.params.country.split(' ').map(l =>
         l[0].toUpperCase() + l.substr(1).toLowerCase()).join(" ")
       return knex.raw("select * FROM countries WHERE name IN ('" + country +"')")
-      .then(function (results) {
-        var country_id = results.rows[0].id
-        return country_id
+      .then(function(results) {
+        return results.rows[0].id
       }).then(function (country_id) {
         var country_stats = knex.raw(
           "SELECT \
