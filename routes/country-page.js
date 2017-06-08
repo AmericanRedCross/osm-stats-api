@@ -1,6 +1,7 @@
 'use strict';
-
 const bookshelf = require('../db/bookshelf_init');
+const RecordNotFound = require('../db/errors').RecordNotFound;
+const Boom = require('boom');
 
 module.exports = [
   // returns list of available countries
@@ -24,14 +25,17 @@ module.exports = [
   // returns stats for all hashtags in a country
   {
     method: 'GET',
-    path: '/{country}/hashtags',
+    path: '/countries/{country}/hashtags',
     handler: function (req, res) {
       const knex = bookshelf.knex;
       // force title case
       const country = req.params.country.toUpperCase();
-      return knex.raw("select * FROM countries WHERE code = '" + country + "';")
+      return knex('countries').where('code', country)
       .then(function (results) {
-        return results.rows[0].id;
+        if (results.length === 0) {
+          throw new RecordNotFound();
+        }
+        return results[0].id;
       }).then(function (countryId) {
         // for given country_id
         // returns stats for all hashtags and name of hashtag
@@ -59,29 +63,39 @@ module.exports = [
                AS filtered \
             ON changesets.id=filtered.changeset_id\
             GROUP by filtered.hashtag;'
-          );
+        );
         return hashtagIds;
       }).then(function (hashtagIdsResults) {
         return hashtagIdsResults.rows;
       })
-      .then(res);
+        .then(res)
+        .catch(function (error) {
+          if (error instanceof RecordNotFound) {
+            return res(Boom.notFound('Could not find country with that id'));
+          } else {
+            return res(Boom.badImplementation('An unexpected error occured'));
+          }
+        });
     }
   },
   // return stats for entire country
   {
     method: 'GET',
-    path: '/{country}',
+    path: '/countries/{country}',
     handler: function (req, res) {
       const knex = bookshelf.knex;
       // force title case
       const country = req.params.country.toUpperCase();
-      return knex.raw("select * FROM countries WHERE code = '" + country + "';")
-      .then(function (results) {
-        return results.rows[0].id;
-      })
-      .then(function (countryId) {
-        var countryStats = knex.raw(
-          'SELECT \
+      return knex('countries').where('code', country)
+        .then(function (results) {
+          if (results.length === 0) {
+            throw new RecordNotFound();
+          }
+          return results[0].id;
+        })
+        .then(function (countryId) {
+          var countryStats = knex.raw(
+            'SELECT \
             SUM(building_count_add + building_count_mod + \
                 road_count_add + road_count_mod + \
                 waterway_count_add + poi_count_add) AS all_edits, \
@@ -102,28 +116,37 @@ module.exports = [
               (SELECT changeset_id FROM changesets_countries WHERE country_id = ' + countryId + ')) \
             AS filtered \
           ON changesets.id=filtered.id;'
-        );
-        return countryStats;
-      }).then(function (countryStatsResults) {
-        return countryStatsResults.rows;
-      })
-      .then(res);
+          );
+          return countryStats;
+        }).then(function (countryStatsResults) {
+          return countryStatsResults.rows;
+        })
+        .then(res)
+        .catch(function (error) {
+          if (error instanceof RecordNotFound) {
+            return res(Boom.notFound('Could not find country with that id'));
+          } else {
+            return res(Boom.badImplementation('An unexpected error occured'));
+          }
+        });
     }
   },
   {
     method: 'GET',
-    path: '/{country}/users',
+    path: '/countries/{country}/users',
     handler: function (req, res) {
       const knex = bookshelf.knex;
-      const country = req.params.country.toUpperCase()
-      return knex.raw("select * FROM countries WHERE code ='" + country + "';")
-      .then(function (results) {
-        var countryId = results.rows[0].id;
-        return countryId;
-      })
-      .then(function (countryId) {
-        var userIds = knex.raw(
-          'SELECT \
+      const country = req.params.country.toUpperCase();
+      return knex('countries').where('code', country)
+        .then(function (results) {
+          if (results.length === 0) {
+            throw new RecordNotFound();
+          }
+          return results[0].id;
+        })
+        .then(function (countryId) {
+          var userIds = knex.raw(
+            'SELECT \
             SUM(building_count_add + building_count_mod + \
                 road_count_add + road_count_mod + \
                 waterway_count_add + poi_count_add) AS all_edits, \
@@ -147,11 +170,18 @@ module.exports = [
           ON changesets.id=filtered.id \
           GROUP by filtered.name, filtered.user_id \
         ');
-        return userIds;
-      }).then(function (userIdsResults) {
-        return userIdsResults.rows;
-      })
-      .then(res);
+          return userIds;
+        }).then(function (userIdsResults) {
+          return userIdsResults.rows;
+        })
+        .then(res)
+        .catch(function (error) {
+          if (error instanceof RecordNotFound) {
+            return res(Boom.notFound('Could not find country with that id'));
+          } else {
+            return res(Boom.badImplementation('An unexpected error occured'));
+          }
+        });
     }
   }
 ];
