@@ -10,15 +10,7 @@ module.exports = [
     path: '/countries',
     handler: function (req, res) {
       const knex = bookshelf.knex;
-      return knex.raw("SELECT name, code FROM countries WHERE code !~'USA-' ;")
-      .then(function (results) {
-        var countryNamesCodes = results.rows.map((d) => {
-          var index = parseInt(results.rows.indexOf(d));
-          if (index > 51) { return [d.name, d.code.substr(0, 3)]; }
-        });
-        // get rid of nulls and return
-        return countryNamesCodes.filter((d) => { return d != null; });
-      })
+      return knex('countries').select('name', 'code').where(knex.raw("code !~'USA-'"))
       .then(res);
     }
   },
@@ -119,7 +111,7 @@ module.exports = [
           );
           return countryStats;
         }).then(function (countryStatsResults) {
-          return countryStatsResults.rows;
+          return countryStatsResults.rows[0];
         })
         .then(res)
         .catch(function (error) {
