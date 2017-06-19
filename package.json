@@ -21,13 +21,16 @@
     "bluebird": "^3.1.1",
     "bookshelf": "^0.9.1",
     "boom": "^3.1.1",
+    "dotenv": "^4.0.0",
     "hapi": "^11.1.2",
     "hapi-router": "^3.4.0",
+    "ical": "^0.5.0",
     "ioredis": "^1.15.0",
     "knex": "^0.9.0",
     "pg": "^4.4.3",
     "ramda": "^0.19.1",
-    "request-promise": "^2.0.0"
+    "request-promise": "^2.0.0",
+    "wreck": "^12.2.2"
   },
   "devDependencies": {
     "eslint": "^3.19.0",
