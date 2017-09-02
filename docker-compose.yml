@@ -1,0 +1,31 @@
+version: '3'
+services:
+  api:
+    build: .
+    depends_on:
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://mm:mm@postgresql/mm
+    env_file: .env
+    volumes:
+      - ./index.js:/opt/app/index.js
+      - ./db:/opt/app/db
+      - ./models:/opt/app/models
+      - ./routes:/opt/app/routes
+    ports:
+      - "3000:3000"
+    links:
+      - postgresql
+      - redis
+  redis:
+    image: redis
+  postgresql:
+    image: mdillon/postgis:9.6
+    environment:
+      - POSTGRES_USER=mm
+      - POSTGRES_PASSWORD=mm
+      - POSTGRES_DB=mm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

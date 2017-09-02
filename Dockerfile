@@ -1,12 +1,14 @@
-FROM node:4.2
+FROM node:6
 
-ADD package.json /tmp/package.json
-RUN cd /tmp && npm install
-RUN mkdir -p /opt/app && cp -a /tmp/node_modules /opt/app/
+WORKDIR /opt/app/
 
-WORKDIR /opt/app
+COPY package.json /opt/app/
+
+RUN npm install \
+  && rm -rf /root/.npm
+
 ADD . /opt/app
 
 EXPOSE 3000
 
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
