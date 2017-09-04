@@ -6,7 +6,7 @@ module.exports = [
     path: '/badges',
     handler: function (req, res) {
       console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
-      Badge.fetchAll({withRelated: 'users'}).then(res);
+      Badge.fetchAll().then(res);
     }
   }
 ];
