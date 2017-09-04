@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config();
 
 var Hapi = require('hapi');
 
@@ -7,7 +7,7 @@ var server = new Hapi.Server({
     routes: {
       cors: true
     }
-  },
+  }
 });
 server.connection({port: process.env.API_PORT || process.env.PORT || 3000});
 
