@@ -1,19 +1,19 @@
-var Boom = require('boom');
-var Hashtag = require('../models/Hashtag');
-var bookshelf = require('../db/bookshelf_init');
 var Promise = require('bluebird');
+var Boom = require('boom');
 var Redis = require('ioredis');
+var R = require('ramda');
 var request = require('request-promise');
 
-var redisHost = process.env.redisPort_6379_TCP_ADDR || process.env.redisHost || '127.0.0.1';
-var redisPort = process.env.redisPort_6379_TCP_PORT || process.env.redisPort || 6379;
+var Hashtag = require('../models/Hashtag');
+var bookshelf = require('../db/bookshelf_init');
 
-var forgettableHost = process.env.forgettablePort_8080_TCP_ADDR || '127.0.0.1';
-var forgettablePort = process.env.forgettablePort_8080_TCP_PORT || 8080;
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379;
+
+var forgettableHost = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1';
+var forgettablePort = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080;
 
 var redis = new Redis({host: redisHost, port: redisPort});
-
-var R = require('ramda');
 
 function allHashtagData (req, res) {
   if (!req.params.id) {
