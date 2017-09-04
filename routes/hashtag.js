@@ -5,13 +5,13 @@ var Promise = require('bluebird');
 var Redis = require('ioredis');
 var request = require('request-promise');
 
-var redis_host = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1';
-var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379;
+var redisHost = process.env.redisPort_6379_TCP_ADDR || process.env.redisHost || '127.0.0.1';
+var redisPort = process.env.redisPort_6379_TCP_PORT || process.env.redisPort || 6379;
 
-var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1';
-var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080;
+var forgettableHost = process.env.forgettablePort_8080_TCP_ADDR || '127.0.0.1';
+var forgettablePort = process.env.forgettablePort_8080_TCP_PORT || 8080;
 
-var redis = new Redis({host: redis_host, port: redis_port});
+var redis = new Redis({host: redisHost, port: redisPort});
 
 var R = require('ramda');
 
@@ -28,7 +28,6 @@ function allHashtagData (req, res) {
     .join('changesets', 'users.id', 'changesets.user_id')
     .where('changesets.id', 'in', subquery)
     .then(function (changesets) {
-
       var times = {};
       var users = {};
       var roads = 0;
@@ -58,15 +57,13 @@ function allHashtagData (req, res) {
         waterways += currentWaterways;
         pois += currentPois;
 
-        userId = changeset.user_id;
+        var userId = changeset.user_id;
         currentTotal = currentRoads + currentBuildings + currentWaterways + currentPois;
         if (!users[userId]) {
           users[userId] = {name: changeset.name, total: currentTotal};
-        }
-        else {
+        } else {
           users[userId]['total'] += currentTotal;
-        };
-
+        }
       });
 
       return {
@@ -83,79 +80,79 @@ function allHashtagData (req, res) {
     .then(res);
 }
 module.exports = [
-{
-  method: 'GET',
-  path: '/hashtags/{id}/users',
-  handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
-    var subquery = bookshelf.knex('changesets_hashtags')
-          .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
-          .select('changeset_id')
-          .where('hashtags.hashtag', req.params.id);
+  {
+    method: 'GET',
+    path: '/hashtags/{id}/users',
+    handler: function (req, res) {
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
+      var subquery = bookshelf.knex('changesets_hashtags')
+            .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
+            .select('changeset_id')
+            .where('hashtags.hashtag', req.params.id);
 
-    var knex = bookshelf.knex;
-    knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
-                knex.raw('SUM(road_km_mod + road_km_add) as roads'),
-                knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
-                knex.raw('SUM(building_count_add + building_count_mod + \
-                            road_count_add + road_count_mod + \
-                            waterway_count_add + poi_count_add) as edits'),
-                knex.raw('MAX(changesets.created_at) as created_at'))
-      .from('changesets')
-      .join('users', 'changesets.user_id', 'users.id')
-      .where('changesets.id', 'in', subquery)
-      .groupBy('name', 'user_id')
-      .then(function (rows) {
-        return res(R.map(function (row) {
+      var knex = bookshelf.knex;
+      knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
+                  knex.raw('SUM(road_km_mod + road_km_add) as roads'),
+                  knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
+                  knex.raw('SUM(building_count_add + building_count_mod + \
+                              road_count_add + road_count_mod + \
+                              waterway_count_add + poi_count_add) as edits'),
+                  knex.raw('MAX(changesets.created_at) as created_at'))
+        .from('changesets')
+        .join('users', 'changesets.user_id', 'users.id')
+        .where('changesets.id', 'in', subquery)
+        .groupBy('name', 'user_id')
+        .then(function (rows) {
+          return res(R.map(function (row) {
+            return {
+              name: row.name,
+              user_id: row.user_id,
+              edits: Number(row.edits),
+              changesets: Number(row.changesets),
+              roads: Number(Number(row.roads).toFixed(3)),
+              buildings: parseInt(row.buildings),
+              created_at: row.created_at
+            };
+          }, rows));
+        });
+    }
+  },
+  {
+    method: 'GET',
+    path: '/hashtags/{id}',
+    handler: allHashtagData
+  },
+  {
+    method: 'GET',
+    path: '/hashtags/{id}/map',
+    handler: function (req, res) {
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
+      redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
+        .then(function (elements) {
+          return elements.map(JSON.parse);
+        }).then(res);
+    }
+  },
+  {
+    method: 'GET',
+    path: '/hashtags',
+    handler: function (req, res) {
+      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
+      Promise.all([
+        Hashtag.fetchAll({columns: ['hashtag']}),
+        request('http://' + forgettableHost + ':' + forgettablePort + '/nmostprobable?distribution=hashtags&N=5')
+      ])
+        .then(function (results) {
+          var hashtags = results[0];
+          var distribution = JSON.parse(results[1]);
+          var serialized = hashtags.toJSON();
+          var hashtaglist = R.map(R.prop('hashtag'), serialized);
           return {
-            "name": row.name,
-            "user_id": row.user_id,
-            "edits": Number(row.edits),
-            "changesets": Number(row.changesets),
-            "roads": Number(Number(row.roads).toFixed(3)),
-            "buildings": parseInt(row.buildings),
-            "created_at": row.created_at
-          }
-        }, rows));
-      });
+            hashtags: hashtaglist,
+            trending: R.map(R.prop('bin'), distribution.data.data)
+          };
+        })
+        .then(res);
+    }
   }
-},
-{
-  method: 'GET',
-  path: '/hashtags/{id}',
-  handler: allHashtagData
-},
-{
-  method: 'GET',
-  path: '/hashtags/{id}/map',
-  handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
-    redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
-      .then(function (elements) {
-        return elements.map(JSON.parse);
-      }).then(res)
-  }
-},
-{
-  method: 'GET',
-  path: '/hashtags',
-  handler: function (req, res) {
-    console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
-    Promise.all([
-      Hashtag.fetchAll({columns: ['hashtag']}),
-      request('http://' + forgettable_host + ':' + forgettable_port + '/nmostprobable?distribution=hashtags&N=5')
-    ])
-      .then(function (results) {
-        hashtags = results[0];
-        distribution = JSON.parse(results[1]);
-        var serialized = hashtags.toJSON();
-        var hashtaglist = R.map(R.prop('hashtag'), serialized);
-        return {
-          hashtags: hashtaglist,
-          trending: R.map(R.prop('bin'), distribution.data.data)
-        }
-      })
-      .then(res);
-  }
-}
 ];

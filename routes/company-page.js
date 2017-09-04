@@ -11,7 +11,7 @@ module.exports = [
       console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       if (!req.params.hashtags) {
         return res(Boom.badRequest('Valid, comma-separated hashtags required'));
-      };
+      }
       const hashtags = "'" + req.params.hashtags.split(',').join("','") + "'";
       const knex = bookshelf.knex;
       return knex.raw("SELECT \
@@ -34,13 +34,13 @@ module.exports = [
       )
       .then(function (results) {
         var object = {};
-        const rows = results.rows.forEach((row) => {
+        results.rows.forEach((row) => {
           const hashtag = row.hashtag;
           delete row.hashtag;
           object[hashtag] = row;
         });
         return object;
-      }).then(res)
+      }).then(res);
     }
   },
   {
@@ -50,7 +50,7 @@ module.exports = [
       console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       if (!req.params.hashtag) {
         return res(Boom.badRequest('Valid hashtag required'));
-      };
+      }
       const hashtag = req.params.hashtag;
       const knex = bookshelf.knex;
       return knex.raw("SELECT \
@@ -80,7 +80,7 @@ module.exports = [
           object[userId] = row;
         });
         return object;
-      }).then(res)
+      }).then(res);
     }
   }
 ];

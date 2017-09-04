@@ -1,6 +1,4 @@
-var Boom = require('boom');
 var bookshelf = require('../db/bookshelf_init');
-var Promise = require('bluebird');
 
 /*
 MissingMaps began tracking OSM edit statistics in January 2016,
@@ -21,7 +19,7 @@ module.exports = [
       console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       const knex = bookshelf.knex;
 
-      var stats_table = knex
+      var statsTable = knex
             .select(knex.raw('COUNT(*) as changesets'),
                     knex.raw('COUNT(DISTINCT user_id) as users'),
                     knex.raw('SUM(road_km_mod + road_km_add) as roads'),
@@ -31,15 +29,15 @@ module.exports = [
             .from('changesets');
 
       if (req.params.hashtag) {
-        const filtered_table = knex.select('changeset_id')
+        const filteredTable = knex.select('changeset_id')
                 .from('changesets_hashtags')
                 .join('hashtags', 'changesets_hashtags.hashtag_id', '=', 'hashtags.id')
                 .where('hashtags.hashtag', '=', req.params.hashtag);
 
-        stats_table = stats_table.whereIn('id', filtered_table);
+        statsTable = statsTable.whereIn('id', filteredTable);
       }
 
-      stats_table
+      statsTable
         .then(function (results) {
           var retval = Object.assign({}, results[0]);
           retval.users = Number(retval.users);
