@@ -1,5 +1,6 @@
 FROM node:6
 
+ARG NODE_ENV=production
 ENV NPM_CONFIG_LOGLEVEL warn
 
 WORKDIR /opt/app/
