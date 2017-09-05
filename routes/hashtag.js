@@ -1,6 +1,8 @@
-var Promise = require('bluebird');
 var Boom = require('boom');
+var holdtime = require('holdtime');
+var Promise = require('bluebird');
 var Redis = require('ioredis');
+var lockingCache = require('locking-cache');
 var R = require('ramda');
 var request = require('request-promise');
 
@@ -12,7 +14,9 @@ var REDIS_URL = process.env.REDIS_URL || 'http://redis/';
 
 var redis = new Redis(REDIS_URL);
 
-var redis = new Redis({host: redisHost, port: redisPort});
+var lockedFetch = lockingCache({
+  maxAge: 1000 * 60
+});
 
 function allHashtagData (req, res) {
   if (!req.params.id) {
@@ -78,41 +82,58 @@ function allHashtagData (req, res) {
     })
     .then(res);
 }
+
+function getUserStats (hashtag, callback) {
+  var subquery = bookshelf.knex('changesets_hashtags')
+        .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
+        .select('changeset_id')
+        .where('hashtags.hashtag', hashtag);
+
+  var knex = bookshelf.knex;
+  knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
+              knex.raw('SUM(road_km_mod + road_km_add) as roads'),
+              knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
+              knex.raw('SUM(building_count_add + building_count_mod + \
+                          road_count_add + road_count_mod + \
+                          waterway_count_add + poi_count_add) as edits'),
+              knex.raw('MAX(changesets.created_at) as created_at'))
+    .from('changesets')
+    .join('users', 'changesets.user_id', 'users.id')
+    .where('changesets.id', 'in', subquery)
+    .groupBy('name', 'user_id')
+    .then(function (rows) {
+      return callback(null, R.map(function (row) {
+        return {
+          name: row.name,
+          user_id: row.user_id,
+          edits: Number(row.edits),
+          changesets: Number(row.changesets),
+          roads: Number(Number(row.roads).toFixed(3)),
+          buildings: parseInt(row.buildings),
+          created_at: row.created_at
+        };
+      }, rows));
+    });
+}
+
+var getCachedUserStats = lockedFetch((hashtag, lock) =>
+  lock(`user-stats:${hashtag}`, unlock =>
+    getUserStats(
+      hashtag,
+      holdtime((err, stats, time) => {
+        console.log('Loading user stats took %dms', time);
+        return unlock(err, stats);
+      })
+    )
+  )
+);
+
 module.exports = [
   {
     method: 'GET',
     path: '/hashtags/{id}/users',
     handler: function (req, res) {
-      var subquery = bookshelf.knex('changesets_hashtags')
-            .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
-            .select('changeset_id')
-            .where('hashtags.hashtag', req.params.id);
-
-      var knex = bookshelf.knex;
-      knex.select('user_id', 'name', knex.raw('COUNT(*) as changesets'),
-                  knex.raw('SUM(road_km_mod + road_km_add) as roads'),
-                  knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
-                  knex.raw('SUM(building_count_add + building_count_mod + \
-                              road_count_add + road_count_mod + \
-                              waterway_count_add + poi_count_add) as edits'),
-                  knex.raw('MAX(changesets.created_at) as created_at'))
-        .from('changesets')
-        .join('users', 'changesets.user_id', 'users.id')
-        .where('changesets.id', 'in', subquery)
-        .groupBy('name', 'user_id')
-        .then(function (rows) {
-          return res(R.map(function (row) {
-            return {
-              name: row.name,
-              user_id: row.user_id,
-              edits: Number(row.edits),
-              changesets: Number(row.changesets),
-              roads: Number(Number(row.roads).toFixed(3)),
-              buildings: parseInt(row.buildings),
-              created_at: row.created_at
-            };
-          }, rows));
-        });
+      return getCachedUserStats(req.params.id, res);
     }
   },
   {
