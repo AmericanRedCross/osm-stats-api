@@ -20,6 +20,7 @@ services:
       - forgettable
       - postgresql
       - redis
+    command: nodemon server.js
   forgettable:
     build: forgettable
     depends_on:

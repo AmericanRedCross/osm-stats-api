@@ -9,8 +9,9 @@ COPY package.json /opt/app/
 RUN npm install \
   && rm -rf /root/.npm
 
-ADD . /opt/app
+COPY . /opt/app
 
+ENV PATH /opt/app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EXPOSE 3000
 
 CMD ["npm", "start"]
