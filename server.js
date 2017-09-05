@@ -27,6 +27,11 @@ server.ext('onRequest', function (req, res) {
   return res.continue();
 });
 
+server.on('request-error', function (req, err) {
+  console.warn(req.method.toUpperCase() + ' ' + req.url.path);
+  console.warn(err.stack);
+});
+
 server.start(() => {
   console.log('Server running at:', server.info.uri);
 });
