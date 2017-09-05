@@ -2,17 +2,16 @@
   "name": "osm-stats-api",
   "version": "0.5.0",
   "description": "An API for Missing Maps statistics",
-  "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/developmentseed/osm-gamification-api.git"
+    "url": "https://github.com/AmericanRedCross/osm-stats-api.git"
   },
   "author": "Development Seed",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/developmentseed/osm-gamification-api/issues"
+    "url": "https://github.com/AmericanRedCross/osm-stats-api/issues"
   },
-  "homepage": "https://github.com/developmentseed/osm-gamification-api",
+  "homepage": "https://github.com/AmericanRedCross/osm-stats-api",
   "dependencies": {
     "bluebird": "^3.1.1",
     "bookshelf": "^0.9.1",
