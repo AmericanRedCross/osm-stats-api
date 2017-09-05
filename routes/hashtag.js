@@ -7,11 +7,10 @@ var request = require('request-promise');
 var Hashtag = require('../models/Hashtag');
 var bookshelf = require('../db/bookshelf_init');
 
-var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1';
-var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379;
+var FORGETTABLE_URL = process.env.FORGETTABLE_URL || 'http://forgettable:8080';
+var REDIS_URL = process.env.REDIS_URL || 'http://redis/';
 
-var forgettableHost = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1';
-var forgettablePort = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080;
+var redis = new Redis(REDIS_URL);
 
 var redis = new Redis({host: redisHost, port: redisPort});
 
@@ -140,7 +139,7 @@ module.exports = [
       console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       Promise.all([
         Hashtag.fetchAll({columns: ['hashtag']}),
-        request('http://' + forgettableHost + ':' + forgettablePort + '/nmostprobable?distribution=hashtags&N=5')
+        request(FORGETTABLE_URL + '/nmostprobable?distribution=hashtags&N=5')
       ])
         .then(function (results) {
           var hashtags = results[0];

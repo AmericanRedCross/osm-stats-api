@@ -3,6 +3,8 @@ services:
   api:
     build: .
     depends_on:
+      - forgettable
+      - postgresql
       - redis
     environment:
       - DATABASE_URL=postgresql://mm:mm@postgresql/mm
@@ -15,7 +17,14 @@ services:
     ports:
       - "3000:3000"
     links:
+      - forgettable
       - postgresql
+      - redis
+  forgettable:
+    build: forgettable
+    depends_on:
+      - redis
+    links:
       - redis
   redis:
     image: redis
