@@ -151,7 +151,8 @@ module.exports = [
             trending: R.map(R.prop('bin'), distribution.data.data)
           };
         })
-        .then(res);
+        .then(res)
+        .catch(res);
     }
   }
 ];
