@@ -10,7 +10,7 @@ var Hashtag = require('../models/Hashtag');
 var bookshelf = require('../db/bookshelf_init');
 
 var FORGETTABLE_URL = process.env.FORGETTABLE_URL || 'http://forgettable:8080';
-var REDIS_URL = process.env.REDIS_URL || 'http://redis/';
+var REDIS_URL = process.env.REDIS_URL || 'redis://redis/';
 
 var redis = new Redis(REDIS_URL);
 
