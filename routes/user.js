@@ -9,10 +9,7 @@ module.exports = [
   {
     method: "GET",
     path: "/users",
-    handler: (req, res) =>
-      User.fetchAll({ columns: ["id", "name"] })
-        .then(res)
-        .catch(res)
+    handler: async (req, res) => res(User.fetchAll({ columns: ["id", "name"] }))
   },
 
   {
