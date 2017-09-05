@@ -1,12 +1,12 @@
-var bookshelf = require('../db/bookshelf_init');
-require('./Changeset');
+const bookshelf = require("../db/bookshelf_init");
+require("./Changeset");
 
 // Returns Country model
-var Country = bookshelf.Model.extend({
-  tableName: 'countries',
-  changesets: function () {
-    return this.belongsToMany('Changeset');
+const Country = bookshelf.Model.extend({
+  tableName: "countries",
+  changesets: function() {
+    return this.belongsToMany("Changeset");
   }
 });
 
-module.exports = bookshelf.model('Country', Country);
+module.exports = bookshelf.model("Country", Country);

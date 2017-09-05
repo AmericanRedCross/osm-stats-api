@@ -1,4 +1,4 @@
-var bookshelf = require('../db/bookshelf_init');
+const bookshelf = require("../db/bookshelf_init");
 
 /*
 MissingMaps began tracking OSM edit statistics in January 2016,
@@ -13,32 +13,43 @@ represent the entirety of edits since 2014.
 
 module.exports = [
   {
-    method: 'GET',
-    path: '/stats/{hashtag?}',
-    handler: function (req, res) {
-      const knex = bookshelf.knex;
+    method: "GET",
+    path: "/stats/{hashtag?}",
+    handler: (req, res) => {
+      const { knex } = bookshelf;
 
-      var statsTable = knex
-            .select(knex.raw('COUNT(*) as changesets'),
-                    knex.raw('COUNT(DISTINCT user_id) as users'),
-                    knex.raw('SUM(road_km_mod + road_km_add) as roads'),
-                    knex.raw('SUM(building_count_add + building_count_mod) as buildings'),
-                    knex.raw('SUM(building_count_add + building_count_mod + road_count_add + road_count_mod + waterway_count_add) as edits'),
-                    knex.raw('MAX(changesets.created_at) as latest'))
-            .from('changesets');
+      let statsTable = knex
+        .select(
+          knex.raw("COUNT(*) as changesets"),
+          knex.raw("COUNT(DISTINCT user_id) as users"),
+          knex.raw("SUM(road_km_mod + road_km_add) as roads"),
+          knex.raw("SUM(building_count_add + building_count_mod) as buildings"),
+          knex.raw(
+            "SUM(building_count_add + building_count_mod + road_count_add + road_count_mod + waterway_count_add) as edits"
+          ),
+          knex.raw("MAX(changesets.created_at) as latest")
+        )
+        .from("changesets");
 
       if (req.params.hashtag) {
-        const filteredTable = knex.select('changeset_id')
-                .from('changesets_hashtags')
-                .join('hashtags', 'changesets_hashtags.hashtag_id', '=', 'hashtags.id')
-                .where('hashtags.hashtag', '=', req.params.hashtag);
+        const filteredTable = knex
+          .select("changeset_id")
+          .from("changesets_hashtags")
+          .join(
+            "hashtags",
+            "changesets_hashtags.hashtag_id",
+            "=",
+            "hashtags.id"
+          )
+          .where("hashtags.hashtag", "=", req.params.hashtag);
 
-        statsTable = statsTable.whereIn('id', filteredTable);
+        statsTable = statsTable.whereIn("id", filteredTable);
       }
 
       statsTable
-        .then(function (results) {
-          var retval = Object.assign({}, results[0]);
+        .then(results => {
+          // TODO aren't these already Numbers?
+          const retval = Object.assign({}, results[0]);
           retval.users = Number(retval.users);
           retval.changesets = Number(retval.changesets);
           retval.buildings = Number(retval.buildings);
@@ -46,7 +57,8 @@ module.exports = [
           retval.edits = Number(retval.edits);
           return retval;
         })
-        .then(res);
+        .then(res)
+        .catch(res);
     }
   }
 ];
