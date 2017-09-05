@@ -83,7 +83,6 @@ module.exports = [
     method: 'GET',
     path: '/hashtags/{id}/users',
     handler: function (req, res) {
-      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       var subquery = bookshelf.knex('changesets_hashtags')
             .join('hashtags', 'hashtags.id', 'changesets_hashtags.hashtag_id')
             .select('changeset_id')
@@ -125,7 +124,6 @@ module.exports = [
     method: 'GET',
     path: '/hashtags/{id}/map',
     handler: function (req, res) {
-      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
         .then(function (elements) {
           return elements.map(JSON.parse);
@@ -136,7 +134,6 @@ module.exports = [
     method: 'GET',
     path: '/hashtags',
     handler: function (req, res) {
-      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       Promise.all([
         Hashtag.fetchAll({columns: ['hashtag']}),
         request(FORGETTABLE_URL + '/nmostprobable?distribution=hashtags&N=5')

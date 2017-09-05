@@ -21,6 +21,12 @@ server.register({
   if (err) throw err;
 });
 
+server.ext('onRequest', function (req, res) {
+  console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
+
+  return res.continue();
+});
+
 server.start(() => {
   console.log('Server running at:', server.info.uri);
 });

@@ -16,7 +16,6 @@ module.exports = [
     method: 'GET',
     path: '/stats/{hashtag?}',
     handler: function (req, res) {
-      console.log(req.info.remoteAddress + ': ' + req.method.toUpperCase() + ' ' + req.url.path);
       const knex = bookshelf.knex;
 
       var statsTable = knex
