@@ -148,7 +148,8 @@ module.exports = [
       redis.lrange('osmstats::map::#' + R.toLower(req.params.id), 0, -1)
         .then(function (elements) {
           return elements.map(JSON.parse);
-        }).then(res);
+        }).then(res)
+        .catch(res);
     }
   },
   {
