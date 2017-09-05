@@ -15,7 +15,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://redis/";
 const redis = new Redis(REDIS_URL);
 
 const lockedFetch = lockingCache({
-  maxAge: 1000 * 60
+  maxAge: 1000 * 30
 });
 
 // TODO cache this
