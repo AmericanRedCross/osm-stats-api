@@ -23,7 +23,15 @@ module.exports = [
         return res(Boom.badRequest("Valid user id required"));
       }
 
-      return User.where({ id: req.params.id })
+      const where = {};
+
+      if (req.params.id.match(/^\d+$/)) {
+        where.id = req.params.id;
+      } else {
+        where.name = req.params.id;
+      }
+
+      return User.where(where)
         .fetch({
           withRelated: [
             {
@@ -46,17 +54,17 @@ module.exports = [
               .knex("changesets")
               .select("id")
               .orderBy("created_at", "desc")
-              .where("user_id", req.params.id)
+              .where("user_id", user.id)
               .limit(1),
             bookshelf
               .knex("changesets")
               .select("created_at")
-              .where("user_id", req.params.id),
+              .where("user_id", user.id),
             user.getCountries(),
             bookshelf
               .knex("changesets")
               .count("user_id")
-              .where("user_id", req.params.id)
+              .where("user_id", user.id)
           ]).then(results => {
             const hashtags = results[0];
             const latest = results[1];
