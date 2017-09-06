@@ -1,4 +1,3 @@
-const Boom = require("boom");
 const Promise = require("bluebird");
 const Redis = require("ioredis");
 const lockingCache = require("locking-cache");
@@ -17,80 +16,6 @@ const redis = new Redis(REDIS_URL);
 const lockedFetch = lockingCache({
   maxAge: 1000 * 20
 });
-
-// TODO cache this
-function allHashtagData(req, res) {
-  if (!req.params.id) {
-    res(Boom.badRequest("Not a valid hashtag."));
-  }
-  const subquery = bookshelf
-    .knex("changesets_hashtags")
-    .join("hashtags", "hashtags.id", "changesets_hashtags.hashtag_id")
-    .select("changeset_id")
-    .where("hashtags.hashtag", req.params.id);
-
-  bookshelf
-    .knex("users")
-    .join("changesets", "users.id", "changesets.user_id")
-    // TODO whereIn?
-    .where("changesets.id", "in", subquery)
-    .then(changesets => {
-      const times = {};
-      const users = {};
-      let roads = 0;
-      let buildings = 0;
-      let waterways = 0;
-      let pois = 0;
-      let currentRoads = 0;
-      let currentBuildings = 0;
-      let currentWaterways = 0;
-      let currentPois = 0;
-      let currentTotal = 0;
-
-      changesets.forEach(changeset => {
-        currentRoads =
-          Number(changeset.road_count_add) + Number(changeset.road_count_mod);
-        currentBuildings =
-          Number(changeset.building_count_add) +
-          Number(changeset.building_count_mod);
-        currentWaterways = Number(changeset.waterway_count_add);
-        currentPois = Number(changeset.poi_count_add);
-        times[changeset.created_at] = {
-          roads: currentRoads,
-          buildings: currentBuildings,
-          waterways: currentWaterways,
-          pois: currentPois
-        };
-
-        roads += currentRoads;
-        buildings += currentBuildings;
-        waterways += currentWaterways;
-        pois += currentPois;
-
-        const userId = changeset.user_id;
-        currentTotal =
-          currentRoads + currentBuildings + currentWaterways + currentPois;
-        if (!users[userId]) {
-          users[userId] = { name: changeset.name, total: currentTotal };
-        } else {
-          users[userId].total += currentTotal;
-        }
-      });
-
-      return {
-        total: {
-          roads,
-          buildings,
-          waterways,
-          pois
-        },
-        users,
-        times
-      };
-    })
-    .then(res)
-    .catch(res);
-}
 
 function getUserStats(hashtag) {
   const { knex } = bookshelf;
@@ -147,11 +72,6 @@ module.exports = [
     method: "GET",
     path: "/hashtags/{id}/users",
     handler: (req, res) => getCachedUserStats(req.params.id, res)
-  },
-  {
-    method: "GET",
-    path: "/hashtags/{id}",
-    handler: allHashtagData
   },
   {
     method: "GET",
