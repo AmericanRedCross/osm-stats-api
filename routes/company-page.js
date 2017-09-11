@@ -18,7 +18,7 @@ module.exports = [
         .sum("building_count_add AS building_count_add")
         .sum("building_count_mod AS building_count_mod")
         .sum("waterway_count_add AS waterway_count_add")
-        .sum("poi_count_add AS point_count_add")
+        .sum("poi_count_add AS poi_count_add")
         .sum("road_km_add AS road_km_add")
         .sum("road_km_mod AS road_km_mod")
         .sum("waterway_km_add AS waterway_km_add")
