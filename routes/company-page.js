@@ -9,8 +9,13 @@ module.exports = [
       if (!req.params.hashtags) {
         return res(Boom.badRequest("Valid, comma-separated hashtags required"));
       }
-      const hashtags = req.params.hashtags.split(",");
+      let hashtags = req.params.hashtags.split(",").map(x => x.trim());
       const { knex } = bookshelf;
+
+      const wildcards = hashtags
+        .filter(x => x.match(/\*$/))
+        .map(x => x.replace(/\*/, "%"));
+      hashtags = hashtags.filter(x => !x.match(/\*$/));
 
       return knex
         .sum("road_count_add AS road_count_add")
@@ -35,6 +40,9 @@ module.exports = [
               "hashtags.id"
             )
             .whereIn("hashtag", hashtags)
+            .orWhere(function where() {
+              return wildcards.map(x => this.orWhere("hashtag", "like", x));
+            })
             .as("filtered"),
           "changesets.id",
           "filtered.changeset_id"
@@ -49,7 +57,8 @@ module.exports = [
           });
           return object;
         })
-        .then(res);
+        .then(res)
+        .catch(res);
     }
   },
   {
@@ -104,7 +113,8 @@ module.exports = [
           });
           return object;
         })
-        .then(res);
+        .then(res)
+        .catch(res);
     }
   }
 ];
