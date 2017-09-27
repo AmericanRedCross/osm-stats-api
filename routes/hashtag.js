@@ -43,6 +43,7 @@ function getUserStats(hashtag) {
     .join("users", "changesets.user_id", "users.id")
     .where("changesets.id", "in", subquery)
     .groupBy("name", "user_id")
+    .limit(10000)
     .then(rows =>
       R.map(
         row => ({
