@@ -48,15 +48,27 @@ module.exports = [
           "filtered.changeset_id"
         )
         .groupBy("filtered.hashtag")
-        .then(results => {
-          const object = {};
-          results.forEach(row => {
-            const { hashtag } = row;
-            delete row.hashtag;
-            object[hashtag] = row;
-          });
-          return object;
-        })
+        .then(results =>
+          results
+            .map(row => ({
+              ...row,
+              road_count_add: parseInt(row.road_count_add, 10),
+              road_count_mod: parseInt(row.road_count_mod, 10),
+              building_count_add: parseInt(row.building_count_add, 10),
+              building_count_mod: parseInt(row.building_count_mod, 10),
+              waterway_count_add: parseInt(row.waterway_count_add, 10),
+              poi_count_add: parseInt(row.poi_count_add, 10),
+              road_km_add: Number(Number(row.road_km_add).toFixed(2)),
+              road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
+              waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
+            }))
+            .reduce((obj, v) => {
+              obj[v.hashtag] = v;
+              delete v.hashtag;
+
+              return obj;
+            }, {})
+        )
         .then(res)
         .catch(res);
     }
