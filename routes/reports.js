@@ -14,6 +14,17 @@ module.exports = [
       let hashtags = req.params.hashtags.split(",").map(x => x.trim());
       const { knex } = bookshelf;
 
+      let startDate = new Date(0);
+      let endDate = new Date();
+
+      if (req.query.startdate != null) {
+        startDate = new Date(req.query.startdate);
+      }
+
+      if (req.query.enddate != null) {
+        endDate = new Date(req.query.enddate);
+      }
+
       const wildcards = hashtags
         .filter(x => x.match(/\*$/))
         .map(x => x.replace(/\*/, "%"));
@@ -50,6 +61,7 @@ module.exports = [
           "changesets.id",
           "filtered.changeset_id"
         )
+        .whereBetween("created_at", [startDate, endDate])
         .groupBy("filtered.hashtag")
         .then(results =>
           results.map(row => ({
