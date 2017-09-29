@@ -1,6 +1,6 @@
 {
   "name": "osm-stats-api",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "An API for Missing Maps statistics",
   "repository": {
     "type": "git",
