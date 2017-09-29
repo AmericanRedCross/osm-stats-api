@@ -1,3 +1,5 @@
+const util = require("util");
+
 const Boom = require("boom");
 const Redis = require("ioredis");
 const lockingCache = require("locking-cache");
@@ -18,7 +20,18 @@ const lockedFetch = lockingCache({
   stale: true
 });
 
-async function getUserStats(hashtag) {
+async function getUserStats(hashtag, startDate, endDate) {
+  let start = new Date(0);
+  let end = new Date();
+
+  if (startDate != null) {
+    start = new Date(startDate);
+  }
+
+  if (endDate != null) {
+    end = new Date(endDate);
+  }
+
   const { knex } = bookshelf;
 
   const subquery = knex("changesets_hashtags")
@@ -43,6 +56,7 @@ async function getUserStats(hashtag) {
     .from("changesets")
     .join("users", "changesets.user_id", "users.id")
     .where("changesets.id", "in", subquery)
+    .whereBetween("changesets.created_at", [start, end])
     .groupBy("name", "user_id")
     .orderBy("edits", "DESC")
     .limit(10000);
@@ -56,21 +70,30 @@ async function getUserStats(hashtag) {
   }));
 }
 
-const getCachedUserStats = lockedFetch((hashtag, lock) =>
-  lock(`user-stats:${hashtag}`, async unlock => {
-    try {
-      return unlock(null, await getUserStats(hashtag));
-    } catch (err) {
-      return unlock(err);
-    }
-  })
+const getCachedUserStats = util.promisify(
+  lockedFetch((hashtag, startDate, endDate, lock) =>
+    lock(`user-stats:${hashtag}:${startDate}:${endDate}`, async unlock => {
+      try {
+        return unlock(null, await getUserStats(hashtag, startDate, endDate));
+      } catch (err) {
+        return unlock(err);
+      }
+    })
+  )
 );
 
 module.exports = [
   {
     method: "GET",
     path: "/hashtags/{id}/users",
-    handler: (req, res) => getCachedUserStats(req.params.id, res)
+    handler: async (req, res) =>
+      res(
+        await getCachedUserStats(
+          req.params.id,
+          req.query.startdate,
+          req.query.enddate
+        )
+      )
   },
   {
     method: "GET",
