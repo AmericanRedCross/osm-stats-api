@@ -1,4 +1,4 @@
-const Promise = require("bluebird");
+const Boom = require("boom");
 const Redis = require("ioredis");
 const lockingCache = require("locking-cache");
 const R = require("ramda");
@@ -79,12 +79,16 @@ module.exports = [
   {
     method: "GET",
     path: "/hashtags/{id}/map",
-    handler: (req, res) =>
-      redis
+    handler: (req, res) => {
+      if (req.params.id == null) {
+        return res(Boom.notFound("No such hashtag"));
+      }
+      return redis
         .lrange(`osmstats::map::#${R.toLower(req.params.id)}`, 0, -1)
         .then(elements => elements.map(JSON.parse))
         .then(res)
-        .catch(res)
+        .catch(res);
+    }
   },
   {
     method: "GET",
