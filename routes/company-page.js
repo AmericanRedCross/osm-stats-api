@@ -116,7 +116,7 @@ module.exports = [
         .leftJoin("users", "users.id", "changesets.user_id")
         .groupBy("users.name", "users.id")
         .orderBy("all_edits", "desc")
-        .limit(5)
+        .limit(100)
         .then(results => {
           const object = {};
           results.forEach(row => {
