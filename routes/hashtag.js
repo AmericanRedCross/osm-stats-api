@@ -18,7 +18,7 @@ const lockedFetch = lockingCache({
   stale: true
 });
 
-function getUserStats(hashtag) {
+async function getUserStats(hashtag) {
   const { knex } = bookshelf;
 
   const subquery = knex("changesets_hashtags")
@@ -26,7 +26,7 @@ function getUserStats(hashtag) {
     .select("changeset_id")
     .where("hashtags.hashtag", hashtag);
 
-  return knex
+  const rows = await knex
     .select(
       "user_id",
       "name",
@@ -45,29 +45,25 @@ function getUserStats(hashtag) {
     .where("changesets.id", "in", subquery)
     .groupBy("name", "user_id")
     .orderBy("edits", "DESC")
-    .limit(10000)
-    .then(rows =>
-      R.map(
-        row => ({
-          name: row.name,
-          user_id: row.user_id,
-          edits: Number(row.edits),
-          changesets: Number(row.changesets),
-          roads: Number(Number(row.roads).toFixed(3)),
-          buildings: parseInt(row.buildings, 10),
-          created_at: row.created_at
-        }),
-        rows
-      )
-    );
+    .limit(10000);
+
+  return rows.map(row => ({
+    ...row,
+    edits: Number(row.edits),
+    changesets: Number(row.changesets),
+    roads: Number(row.roads),
+    buildings: Number(row.buildings)
+  }));
 }
 
 const getCachedUserStats = lockedFetch((hashtag, lock) =>
-  lock(`user-stats:${hashtag}`, unlock =>
-    getUserStats(hashtag)
-      .then(stats => unlock(null, stats))
-      .catch(err => unlock(err))
-  )
+  lock(`user-stats:${hashtag}`, async unlock => {
+    try {
+      return unlock(null, await getUserStats(hashtag));
+    } catch (err) {
+      return unlock(err);
+    }
+  })
 );
 
 module.exports = [
@@ -79,36 +75,43 @@ module.exports = [
   {
     method: "GET",
     path: "/hashtags/{id}/map",
-    handler: (req, res) => {
+    handler: async (req, res) => {
       if (req.params.id == null) {
         return res(Boom.notFound("No such hashtag"));
       }
-      return redis
-        .lrange(`osmstats::map::#${R.toLower(req.params.id)}`, 0, -1)
-        .then(elements => elements.map(JSON.parse))
-        .then(res)
-        .catch(res);
+
+      try {
+        const elements = await redis.lrange(
+          `osmstats::map::#${R.toLower(req.params.id)}`,
+          0,
+          -1
+        );
+
+        return res(elements.map(JSON.parse));
+      } catch (err) {
+        return res(err);
+      }
     }
   },
   {
     method: "GET",
     path: "/hashtags",
-    handler: (req, res) =>
-      Promise.all([
-        Hashtag.fetchAll({ columns: ["hashtag"] }),
-        request(`${FORGETTABLE_URL}/nmostprobable?distribution=hashtags&N=5`)
-      ])
-        .then(results => {
-          const hashtags = results[0];
-          const distribution = JSON.parse(results[1]);
-          const serialized = hashtags.toJSON();
-          const hashtaglist = R.map(R.prop("hashtag"), serialized);
-          return {
-            hashtags: hashtaglist,
-            trending: R.map(R.prop("bin"), distribution.data.data)
-          };
-        })
-        .then(res)
-        .catch(res)
+    handler: async (req, res) => {
+      try {
+        const [hashtags, distributionStr] = await Promise.all([
+          Hashtag.fetchAll({ columns: ["hashtag"] }),
+          request(`${FORGETTABLE_URL}/nmostprobable?distribution=hashtags&N=5`)
+        ]);
+
+        const distribution = JSON.parse(distributionStr);
+
+        return res({
+          hashtags: hashtags.toJSON().map(x => x.hashtag),
+          trending: R.map(R.prop("bin"), distribution.data.data)
+        });
+      } catch (err) {
+        return res(err);
+      }
+    }
   }
 ];
