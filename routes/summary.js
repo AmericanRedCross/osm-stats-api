@@ -15,8 +15,19 @@ module.exports = [
   {
     method: "GET",
     path: "/stats/{hashtag?}",
-    handler: (req, res) => {
+    handler: async (req, res) => {
       const { knex } = bookshelf;
+
+      let startDate = new Date(0);
+      let endDate = new Date();
+
+      if (req.query.startdate != null) {
+        startDate = new Date(req.query.startdate);
+      }
+
+      if (req.query.enddate != null) {
+        endDate = new Date(req.query.enddate);
+      }
 
       let statsTable = knex
         .select(
@@ -29,7 +40,8 @@ module.exports = [
           ),
           knex.raw("MAX(changesets.created_at) as latest")
         )
-        .from("changesets");
+        .from("changesets")
+        .whereBetween("created_at", [startDate, endDate]);
 
       if (req.params.hashtag) {
         const filteredTable = knex
@@ -46,19 +58,21 @@ module.exports = [
         statsTable = statsTable.whereIn("id", filteredTable);
       }
 
-      statsTable
-        .then(results => {
-          // TODO aren't these already Numbers?
-          const retval = Object.assign({}, results[0]);
-          retval.users = Number(retval.users);
-          retval.changesets = Number(retval.changesets);
-          retval.buildings = Number(retval.buildings);
-          retval.roads = Number(retval.roads);
-          retval.edits = Number(retval.edits);
-          return retval;
-        })
-        .then(res)
-        .catch(res);
+      try {
+        const results = await statsTable;
+        const row = results[0];
+
+        return res({
+          ...row,
+          users: Number(row.users),
+          changesets: Number(row.changesets),
+          buildings: Number(row.buildings),
+          roads: Number(row.buildings),
+          edits: Number(row.edits)
+        });
+      } catch (err) {
+        return res(err);
+      }
     }
   }
 ];
