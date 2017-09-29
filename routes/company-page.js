@@ -27,6 +27,7 @@ module.exports = [
         .sum("road_km_add AS road_km_add")
         .sum("road_km_mod AS road_km_mod")
         .sum("waterway_km_add AS waterway_km_add")
+        .max("created_at AS last_updated")
         .select("hashtag")
         .from("changesets")
         .innerJoin(
