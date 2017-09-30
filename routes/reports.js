@@ -7,7 +7,7 @@ module.exports = [
   {
     method: "GET",
     path: "/reports/{hashtags}",
-    handler: (req, res) => {
+    handler: async (req, res) => {
       if (!req.params.hashtags) {
         return res(Boom.badRequest("Valid, comma-separated hashtags required"));
       }
@@ -30,54 +30,55 @@ module.exports = [
         .map(x => x.replace(/\*/, "%"));
       hashtags = hashtags.filter(x => !x.match(/\*$/));
 
-      return knex
-        .sum("road_count_add AS road_count_add")
-        .sum("road_count_mod AS road_count_mod")
-        .sum("building_count_add AS building_count_add")
-        .sum("building_count_mod AS building_count_mod")
-        .sum("waterway_count_add AS waterway_count_add")
-        .sum("poi_count_add AS poi_count_add")
-        .sum("road_km_add AS road_km_add")
-        .sum("road_km_mod AS road_km_mod")
-        .sum("waterway_km_add AS waterway_km_add")
-        .max("created_at AS last_updated")
-        .select("hashtag")
-        .from("changesets")
-        .innerJoin(
-          knex
-            .distinct("changeset_id", "hashtag")
-            .select()
-            .from("changesets_hashtags")
-            .innerJoin(
-              "hashtags",
-              "changesets_hashtags.hashtag_id",
-              "hashtags.id"
-            )
-            .whereIn("hashtag", hashtags)
-            .orWhere(function where() {
-              return wildcards.map(x => this.orWhere("hashtag", "like", x));
-            })
-            .as("filtered"),
-          "changesets.id",
-          "filtered.changeset_id"
-        )
-        .whereBetween("created_at", [startDate, endDate])
-        .groupBy("filtered.hashtag")
-        .then(results =>
-          results.map(row => ({
-            ...row,
-            road_count_add: parseInt(row.road_count_add, 10),
-            road_count_mod: parseInt(row.road_count_mod, 10),
-            building_count_add: parseInt(row.building_count_add, 10),
-            building_count_mod: parseInt(row.building_count_mod, 10),
-            waterway_count_add: parseInt(row.waterway_count_add, 10),
-            poi_count_add: parseInt(row.poi_count_add, 10),
-            road_km_add: Number(Number(row.road_km_add).toFixed(2)),
-            road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
-            waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
-          }))
-        )
-        .then(data =>
+      try {
+        const results = await knex
+          .sum("road_count_add AS road_count_add")
+          .sum("road_count_mod AS road_count_mod")
+          .sum("building_count_add AS building_count_add")
+          .sum("building_count_mod AS building_count_mod")
+          .sum("waterway_count_add AS waterway_count_add")
+          .sum("poi_count_add AS poi_count_add")
+          .sum("road_km_add AS road_km_add")
+          .sum("road_km_mod AS road_km_mod")
+          .sum("waterway_km_add AS waterway_km_add")
+          .max("created_at AS last_updated")
+          .select("hashtag")
+          .from("changesets")
+          .innerJoin(
+            knex
+              .distinct("changeset_id", "hashtag")
+              .select()
+              .from("changesets_hashtags")
+              .innerJoin(
+                "hashtags",
+                "changesets_hashtags.hashtag_id",
+                "hashtags.id"
+              )
+              .whereIn("hashtag", hashtags)
+              .orWhere(function where() {
+                return wildcards.map(x => this.orWhere("hashtag", "like", x));
+              })
+              .as("filtered"),
+            "changesets.id",
+            "filtered.changeset_id"
+          )
+          .whereBetween("created_at", [startDate, endDate])
+          .groupBy("filtered.hashtag");
+
+        const data = results.map(row => ({
+          ...row,
+          road_count_add: parseInt(row.road_count_add, 10),
+          road_count_mod: parseInt(row.road_count_mod, 10),
+          building_count_add: parseInt(row.building_count_add, 10),
+          building_count_mod: parseInt(row.building_count_mod, 10),
+          waterway_count_add: parseInt(row.waterway_count_add, 10),
+          poi_count_add: parseInt(row.poi_count_add, 10),
+          road_km_add: Number(Number(row.road_km_add).toFixed(2)),
+          road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
+          waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
+        }));
+
+        return res(
           json2csv({
             data,
             fields: [
@@ -124,9 +125,10 @@ module.exports = [
             ],
             del: "\t"
           })
-        )
-        .then(data => res(data).type("text/tab-separated-values"))
-        .catch(res);
+        ).type("text/tab-separated-values");
+      } catch (err) {
+        return res(err);
+      }
     }
   }
 ];
