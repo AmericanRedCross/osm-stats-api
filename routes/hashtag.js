@@ -86,14 +86,19 @@ module.exports = [
   {
     method: "GET",
     path: "/hashtags/{id}/users",
-    handler: async (req, res) =>
-      res(
-        await getCachedUserStats(
-          req.params.id,
-          req.query.startdate,
-          req.query.enddate
-        )
-      )
+    handler: async (req, res) => {
+      try {
+        return res(
+          await getCachedUserStats(
+            req.params.id,
+            req.query.startdate,
+            req.query.enddate
+          )
+        );
+      } catch (err) {
+        return res(err);
+      }
+    }
   },
   {
     method: "GET",
