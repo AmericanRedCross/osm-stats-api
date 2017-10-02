@@ -161,7 +161,7 @@ module.exports = [
             delete obj[v.user_id].user_id;
 
             return obj;
-          });
+          }, {});
 
         return res(data);
       } catch (err) {
