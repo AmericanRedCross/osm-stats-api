@@ -123,9 +123,10 @@ module.exports = [
                 value: "poi_count_add"
               }
             ],
-            del: "\t"
           })
-        ).type("text/tab-separated-values");
+        )
+          .type("text/csv")
+          .header("Content-Disposition", "attachment; filename=hashtags.csv");
       } catch (err) {
         return res(err);
       }
