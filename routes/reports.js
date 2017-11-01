@@ -231,8 +231,7 @@ module.exports = [
                 label: "POIs Added",
                 value: "poi_count_add"
               }
-            ],
-            del: "\t"
+            ]
           })
         )
           .type("text/csv")
