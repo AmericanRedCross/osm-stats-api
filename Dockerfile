@@ -13,6 +13,7 @@ RUN npm install \
 COPY . /opt/app
 
 ENV PATH /opt/app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-EXPOSE 3000
+ENV PORT 80
+EXPOSE 80
 
 CMD ["npm", "start"]

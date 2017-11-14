@@ -18,7 +18,7 @@ services:
       - ./models:/opt/app/models
       - ./routes:/opt/app/routes
     ports:
-      - "3000:3000"
+      - "3000:80"
     links:
       - forgettable
       - postgresql
