@@ -1,5 +1,98 @@
+const util = require("util");
+
 const Boom = require("boom");
 const bookshelf = require("../db/bookshelf_init");
+const lockingCache = require("locking-cache");
+
+const lockedFetch = lockingCache({
+  maxAge: 1000 * 20,
+  stale: true
+});
+
+async function getHashtagSummary(hashtags, wildcards, startDate, endDate) {
+  let start = new Date(0);
+  let end = new Date();
+
+  if (startDate != null) {
+    start = new Date(startDate);
+  }
+
+  if (endDate != null) {
+    end = new Date(endDate);
+  }
+
+  const { knex } = bookshelf;
+
+  const results = await knex
+    .sum("road_count_add AS road_count_add")
+    .sum("road_count_mod AS road_count_mod")
+    .sum("building_count_add AS building_count_add")
+    .sum("building_count_mod AS building_count_mod")
+    .sum("waterway_count_add AS waterway_count_add")
+    .sum("poi_count_add AS poi_count_add")
+    .sum("road_km_add AS road_km_add")
+    .sum("road_km_mod AS road_km_mod")
+    .sum("waterway_km_add AS waterway_km_add")
+    .max("created_at AS last_updated")
+    .select("hashtag")
+    .from("changesets")
+    .innerJoin(
+      knex
+        .distinct("changeset_id", "hashtag")
+        .select()
+        .from("changesets_hashtags")
+        .innerJoin("hashtags", "changesets_hashtags.hashtag_id", "hashtags.id")
+        .whereIn("hashtag", hashtags)
+        .orWhere(function where() {
+          return wildcards.map(x => this.orWhere("hashtag", "like", x));
+        })
+        .as("filtered"),
+      "changesets.id",
+      "filtered.changeset_id"
+    )
+    .whereBetween("created_at", [start, end])
+    .groupBy("filtered.hashtag");
+
+  return results
+    .map(row => ({
+      ...row,
+      road_count_add: Number(row.road_count_add),
+      road_count_mod: Number(row.road_count_mod),
+      building_count_add: Number(row.building_count_add),
+      building_count_mod: Number(row.building_count_mod),
+      waterway_count_add: Number(row.waterway_count_add),
+      poi_count_add: Number(row.poi_count_add),
+      road_km_add: Number(Number(row.road_km_add).toFixed(2)),
+      road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
+      waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
+    }))
+    .reduce((obj, v) => {
+      obj[v.hashtag] = v;
+      delete v.hashtag;
+
+      return obj;
+    }, {});
+}
+
+const getCachedHashtagSummary = util.promisify(
+  lockedFetch((hashtags, wildcards, startDate, endDate, lock) =>
+    lock(
+      `hashtag-summary:${JSON.stringify(hashtags)}:${JSON.stringify(
+        wildcards
+      )}:${startDate}:${endDate}`,
+      async unlock => {
+        try {
+          return unlock(
+            null,
+            await getHashtagSummary(hashtags, wildcards, startDate, endDate)
+          );
+        } catch (err) {
+          return unlock(err);
+        }
+      }
+    )
+  )
+);
 
 module.exports = [
   {
@@ -9,19 +102,8 @@ module.exports = [
       if (!req.params.hashtags) {
         return res(Boom.badRequest("Valid, comma-separated hashtags required"));
       }
+
       let hashtags = req.params.hashtags.split(",").map(x => x.trim());
-      const { knex } = bookshelf;
-
-      let startDate = new Date(0);
-      let endDate = new Date();
-
-      if (req.query.startdate != null) {
-        startDate = new Date(req.query.startdate);
-      }
-
-      if (req.query.enddate != null) {
-        endDate = new Date(req.query.enddate);
-      }
 
       const wildcards = hashtags
         .filter(x => x.match(/\*$/))
@@ -29,60 +111,13 @@ module.exports = [
       hashtags = hashtags.filter(x => !x.match(/\*$/));
 
       try {
-        const results = await knex
-          .sum("road_count_add AS road_count_add")
-          .sum("road_count_mod AS road_count_mod")
-          .sum("building_count_add AS building_count_add")
-          .sum("building_count_mod AS building_count_mod")
-          .sum("waterway_count_add AS waterway_count_add")
-          .sum("poi_count_add AS poi_count_add")
-          .sum("road_km_add AS road_km_add")
-          .sum("road_km_mod AS road_km_mod")
-          .sum("waterway_km_add AS waterway_km_add")
-          .max("created_at AS last_updated")
-          .select("hashtag")
-          .from("changesets")
-          .innerJoin(
-            knex
-              .distinct("changeset_id", "hashtag")
-              .select()
-              .from("changesets_hashtags")
-              .innerJoin(
-                "hashtags",
-                "changesets_hashtags.hashtag_id",
-                "hashtags.id"
-              )
-              .whereIn("hashtag", hashtags)
-              .orWhere(function where() {
-                return wildcards.map(x => this.orWhere("hashtag", "like", x));
-              })
-              .as("filtered"),
-            "changesets.id",
-            "filtered.changeset_id"
-          )
-          .whereBetween("created_at", [startDate, endDate])
-          .groupBy("filtered.hashtag");
-
         return res(
-          results
-            .map(row => ({
-              ...row,
-              road_count_add: Number(row.road_count_add),
-              road_count_mod: Number(row.road_count_mod),
-              building_count_add: Number(row.building_count_add),
-              building_count_mod: Number(row.building_count_mod),
-              waterway_count_add: Number(row.waterway_count_add),
-              poi_count_add: Number(row.poi_count_add),
-              road_km_add: Number(Number(row.road_km_add).toFixed(2)),
-              road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
-              waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
-            }))
-            .reduce((obj, v) => {
-              obj[v.hashtag] = v;
-              delete v.hashtag;
-
-              return obj;
-            }, {})
+          await getCachedHashtagSummary(
+            hashtags,
+            wildcards,
+            req.query.startdate,
+            req.query.enddate
+          )
         );
       } catch (err) {
         return res(err);
