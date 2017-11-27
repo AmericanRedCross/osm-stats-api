@@ -16,6 +16,7 @@ services:
       - ./server.js:/opt/app/server.js
       - ./db:/opt/app/db
       - ./models:/opt/app/models
+      - ./package.json:/opt/app/package.json
       - ./routes:/opt/app/routes
     ports:
       - "3000:3000"

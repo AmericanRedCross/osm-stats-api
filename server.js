@@ -1,6 +1,8 @@
 const Hapi = require("hapi");
 const HapiRouter = require("hapi-router");
 
+const VERSION = require("./package.json").version;
+
 const server = new Hapi.Server({
   connections: {
     routes: {
@@ -29,6 +31,18 @@ server.ext("onRequest", (req, res) => {
   );
 
   return res.continue();
+});
+
+server.ext("onPreResponse", (req, reply) => {
+  const { response } = req;
+
+  if (response.isBoom) {
+    response.output.headers["X-API-Version"] = VERSION;
+  } else {
+    response.header("X-API-Version", VERSION);
+  }
+
+  return reply.continue();
 });
 
 server.on("request-error", (req, err) => {
