@@ -82,6 +82,24 @@ const getCachedUserStats = util.promisify(
   )
 );
 
+const getCachedHashtagMap = util.promisify(
+  lockedFetch((hashtag, lock) =>
+    lock(`hashtag-map:${hashtag}`, async unlock => {
+      try {
+        const elements = await redis.lrange(
+          `osmstats::map::#${R.toLower(hashtag)}`,
+          0,
+          -1
+        );
+
+        return unlock(null, elements.map(JSON.parse));
+      } catch (err) {
+        return unlock(err);
+      }
+    })
+  )
+);
+
 module.exports = [
   {
     method: "GET",
@@ -109,13 +127,7 @@ module.exports = [
       }
 
       try {
-        const elements = await redis.lrange(
-          `osmstats::map::#${R.toLower(req.params.id)}`,
-          0,
-          -1
-        );
-
-        return res(elements.map(JSON.parse));
+        return res(await getCachedHashtagMap(req.params.id));
       } catch (err) {
         return res(err);
       }
