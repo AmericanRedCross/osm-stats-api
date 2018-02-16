@@ -34,7 +34,7 @@ module.exports = [
             {
               badges: qb =>
                 qb.select(
-                  "badges_users.created_at",
+                  "badges_users.updated_at",
                   "badges.id",
                   "badges.category",
                   "badges.level",

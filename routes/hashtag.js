@@ -34,40 +34,46 @@ async function getUserStats(hashtag, startDate, endDate) {
 
   const { knex } = bookshelf;
 
-  const subquery = knex("changesets_hashtags")
-    .join("hashtags", "hashtags.id", "changesets_hashtags.hashtag_id")
-    .select("changeset_id")
-    .where("hashtags.hashtag", hashtag);
+  try {
+    const rows = await knex
+      .select(
+        "user_id",
+        "name",
+        knex.raw("COUNT(*) AS changesets"),
+        knex.raw("SUM(road_km_mod + road_km_add) AS roads"),
+        knex.raw("SUM(building_count_add + building_count_mod) AS buildings"),
+        knex.raw(
+          `SUM(building_count_add + building_count_mod +
+                            road_count_add + road_count_mod +
+                            waterway_count_add + poi_count_add) AS edits` // waterway mods, poi mods
+        ),
+        knex.raw("MAX(changesets.created_at) AS created_at")
+      )
+      .from("changesets")
+      .join("users", "changesets.user_id", "users.id")
+      .join(
+        "changesets_hashtags",
+        "changesets_hashtags.changeset_id",
+        "changesets.id"
+      )
+      .join("hashtags", "hashtags.id", "changesets_hashtags.hashtag_id")
+      .where("hashtags.hashtag", hashtag)
+      .whereBetween("changesets.created_at", [start, end])
+      .groupBy("name", "user_id")
+      .orderBy("edits", "DESC")
+      .limit(10000);
 
-  const rows = await knex
-    .select(
-      "user_id",
-      "name",
-      knex.raw("COUNT(*) as changesets"),
-      knex.raw("SUM(road_km_mod + road_km_add) as roads"),
-      knex.raw("SUM(building_count_add + building_count_mod) as buildings"),
-      knex.raw(
-        `SUM(building_count_add + building_count_mod +
-                          road_count_add + road_count_mod +
-                          waterway_count_add + poi_count_add) as edits`
-      ),
-      knex.raw("MAX(changesets.created_at) as created_at")
-    )
-    .from("changesets")
-    .join("users", "changesets.user_id", "users.id")
-    .where("changesets.id", "in", subquery)
-    .whereBetween("changesets.created_at", [start, end])
-    .groupBy("name", "user_id")
-    .orderBy("edits", "DESC")
-    .limit(10000);
-
-  return rows.map(row => ({
-    ...row,
-    edits: Number(row.edits),
-    changesets: Number(row.changesets),
-    roads: Number(row.roads),
-    buildings: Number(row.buildings)
-  }));
+    return rows.map(row => ({
+      ...row,
+      edits: Number(row.edits),
+      changesets: Number(row.changesets),
+      roads: Number(row.roads),
+      buildings: Number(row.buildings)
+    }));
+  } catch (err) {
+    console.warn(err);
+    throw err;
+  }
 }
 
 const getCachedUserStats = util.promisify(

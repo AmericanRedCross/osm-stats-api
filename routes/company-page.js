@@ -179,6 +179,7 @@ module.exports = [
           )
           .leftJoin("users", "users.id", "changesets.user_id")
           .whereBetween("changesets.created_at", [startDate, endDate])
+          .whereNotNull("users.id")
           .groupBy("users.name", "users.id")
           .orderBy("all_edits", "desc")
           .limit(100);
