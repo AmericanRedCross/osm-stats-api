@@ -20,48 +20,27 @@ const lockedFetch = lockingCache({
   stale: true
 });
 
-async function getUserStats(hashtag, startDate, endDate) {
-  let start = new Date(0);
-  let end = new Date();
-
-  if (startDate != null) {
-    start = new Date(startDate);
-  }
-
-  if (endDate != null) {
-    end = new Date(endDate);
-  }
-
+async function getUserStats(hashtag) {
   const { knex } = bookshelf;
 
   try {
     const rows = await knex
+      .debug()
       .select(
         "user_id",
         "name",
-        knex.raw("COUNT(*) AS changesets"),
-        knex.raw("SUM(road_km_mod + road_km_add) AS roads"),
-        knex.raw("SUM(building_count_add + building_count_mod) AS buildings"),
-        knex.raw(
-          `SUM(building_count_add + building_count_mod +
-                            road_count_add + road_count_mod +
-                            waterway_count_add + poi_count_add) AS edits` // waterway mods, poi mods
-        ),
-        knex.raw("MAX(changesets.created_at) AS created_at")
+        "changesets",
+        "edits",
+        "buildings",
+        knex.raw("road_km AS roads"),
+        knex.raw("updated_at AS created_at")
       )
-      .from("changesets")
-      .join("users", "changesets.user_id", "users.id")
-      .join(
-        "changesets_hashtags",
-        "changesets_hashtags.changeset_id",
-        "changesets.id"
-      )
-      .join("hashtags", "hashtags.id", "changesets_hashtags.hashtag_id")
-      .where("hashtags.hashtag", hashtag)
-      .whereBetween("changesets.created_at", [start, end])
-      .groupBy("name", "user_id")
-      .orderBy("edits", "DESC")
-      .limit(10000);
+      .from("raw_hashtags_users")
+      .join("users", "raw_hashtags_users.user_id", "users.id")
+      .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
+      .where("raw_hashtags.hashtag", hashtag)
+      .orderBy("edits_rank", "ASC") // TODO parameterize this
+      .limit(1000);
 
     return rows.map(row => ({
       ...row,
@@ -77,10 +56,10 @@ async function getUserStats(hashtag, startDate, endDate) {
 }
 
 const getCachedUserStats = util.promisify(
-  lockedFetch((hashtag, startDate, endDate, lock) =>
-    lock(`user-stats:${hashtag}:${startDate}:${endDate}`, async unlock => {
+  lockedFetch((hashtag, lock) =>
+    lock(`user-stats:${hashtag}`, async unlock => {
       try {
-        return unlock(null, await getUserStats(hashtag, startDate, endDate));
+        return unlock(null, await getUserStats(hashtag));
       } catch (err) {
         return unlock(err);
       }
@@ -112,13 +91,7 @@ module.exports = [
     path: "/hashtags/{id}/users",
     handler: async (req, res) => {
       try {
-        return res(
-          await getCachedUserStats(
-            req.params.id,
-            req.query.startdate,
-            req.query.enddate
-          )
-        );
+        return res(await getCachedUserStats(req.params.id));
       } catch (err) {
         return res(err);
       }
