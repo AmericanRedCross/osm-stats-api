@@ -20,7 +20,11 @@ const lockedFetch = lockingCache({
   stale: true
 });
 
-async function getUserStats(hashtag) {
+async function getUserStats(
+  hashtag,
+  orderBy = "edits_rank",
+  orderDirection = "ASC"
+) {
   const { knex } = bookshelf;
 
   try {
@@ -38,8 +42,8 @@ async function getUserStats(hashtag) {
       .join("users", "raw_hashtags_users.user_id", "users.id")
       .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
       .where("raw_hashtags.hashtag", hashtag)
-      .orderBy("edits_rank", "ASC") // TODO parameterize this
-      .limit(1000);
+      .orderBy(orderBy, orderDirection)
+      .limit(100);
 
     return rows.map(row => ({
       ...row,
@@ -55,10 +59,13 @@ async function getUserStats(hashtag) {
 }
 
 const getCachedUserStats = util.promisify(
-  lockedFetch((hashtag, lock) =>
-    lock(`user-stats:${hashtag}`, async unlock => {
+  lockedFetch((hashtag, orderBy, orderDirection, lock) =>
+    lock(`user-stats:${hashtag}:${orderBy}:${orderDirection}`, async unlock => {
       try {
-        return unlock(null, await getUserStats(hashtag));
+        return unlock(
+          null,
+          await getUserStats(hashtag, orderBy, orderDirection)
+        );
       } catch (err) {
         return unlock(err);
       }
@@ -84,13 +91,29 @@ const getCachedHashtagMap = util.promisify(
   )
 );
 
+const validateOrderBy = orderBy =>
+  ["buildings", "edits", "road_km", "updated_at"].includes(orderBy)
+    ? orderBy
+    : undefined;
+
+const validateOrderDirection = orderDirection =>
+  ["asc", "desc"].includes((orderDirection || "").toLowerCase())
+    ? orderDirection
+    : undefined;
+
 module.exports = [
   {
     method: "GET",
     path: "/hashtags/{id}/users",
     handler: async (req, res) => {
       try {
-        return res(await getCachedUserStats(req.params.id));
+        return res(
+          await getCachedUserStats(
+            req.params.id,
+            validateOrderBy(req.query.order_by),
+            validateOrderDirection(req.query.order_direction)
+          )
+        );
       } catch (err) {
         return res(err);
       }
