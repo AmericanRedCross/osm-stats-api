@@ -9,49 +9,28 @@ const lockedFetch = lockingCache({
   stale: true
 });
 
-async function getHashtagSummary(hashtags, wildcards, startDate, endDate) {
-  let start = new Date(0);
-  let end = new Date();
-
-  if (startDate != null) {
-    start = new Date(startDate);
-  }
-
-  if (endDate != null) {
-    end = new Date(endDate);
-  }
-
+async function getHashtagSummary(hashtags, wildcards) {
   const { knex } = bookshelf;
 
   const results = await knex
-    .sum("road_count_add AS road_count_add")
-    .sum("road_count_mod AS road_count_mod")
-    .sum("building_count_add AS building_count_add")
-    .sum("building_count_mod AS building_count_mod")
-    .sum("waterway_count_add AS waterway_count_add")
-    .sum("poi_count_add AS poi_count_add")
-    .sum("road_km_add AS road_km_add")
-    .sum("road_km_mod AS road_km_mod")
-    .sum("waterway_km_add AS waterway_km_add")
-    .max("created_at AS last_updated")
-    .select("hashtag")
-    .from("changesets")
-    .innerJoin(
-      knex
-        .distinct("changeset_id", "hashtag")
-        .select()
-        .from("changesets_hashtags")
-        .innerJoin("hashtags", "changesets_hashtags.hashtag_id", "hashtags.id")
-        .whereIn("hashtag", hashtags)
-        .orWhere(function where() {
-          return wildcards.map(x => this.orWhere("hashtag", "like", x));
-        })
-        .as("filtered"),
-      "changesets.id",
-      "filtered.changeset_id"
+    .select(
+      "hashtag",
+      knex.raw("roads_added AS road_count_add"),
+      knex.raw("roads_modified AS road_count_mod"),
+      knex.raw("buildings_added AS building_count_add"),
+      knex.raw("buildings_modified AS building_count_mod"),
+      knex.raw("waterways_added AS waterway_count_add"),
+      knex.raw("pois_added AS poi_count_add"),
+      knex.raw("road_km_added AS road_km_add"),
+      knex.raw("road_km_modified AS road_km_mod"),
+      knex.raw("waterway_km_added AS waterway_km_add"),
+      knex.raw("updated_at AS last_updated")
     )
-    .whereBetween("created_at", [start, end])
-    .groupBy("filtered.hashtag");
+    .from("hashtag_stats")
+    .whereIn("hashtag", hashtags)
+    .orWhere(function where() {
+      return wildcards.map(x => this.orWhere("hashtag", "like", x));
+    });
 
   return results
     .map(row => ({
@@ -75,17 +54,14 @@ async function getHashtagSummary(hashtags, wildcards, startDate, endDate) {
 }
 
 const getCachedHashtagSummary = util.promisify(
-  lockedFetch((hashtags, wildcards, startDate, endDate, lock) =>
+  lockedFetch((hashtags, wildcards, lock) =>
     lock(
       `hashtag-summary:${JSON.stringify(hashtags)}:${JSON.stringify(
         wildcards
-      )}:${startDate}:${endDate}`,
+      )}`,
       async unlock => {
         try {
-          return unlock(
-            null,
-            await getHashtagSummary(hashtags, wildcards, startDate, endDate)
-          );
+          return unlock(null, await getHashtagSummary(hashtags, wildcards));
         } catch (err) {
           return unlock(err);
         }
@@ -111,14 +87,7 @@ module.exports = [
       hashtags = hashtags.filter(x => !x.match(/\*$/));
 
       try {
-        return res(
-          await getCachedHashtagSummary(
-            hashtags,
-            wildcards,
-            req.query.startdate,
-            req.query.enddate
-          )
-        );
+        return res(await getCachedHashtagSummary(hashtags, wildcards));
       } catch (err) {
         return res(err);
       }
