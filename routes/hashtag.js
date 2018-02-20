@@ -25,7 +25,6 @@ async function getUserStats(hashtag) {
 
   try {
     const rows = await knex
-      .debug()
       .select(
         "user_id",
         "name",
