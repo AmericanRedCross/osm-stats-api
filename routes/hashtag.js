@@ -12,6 +12,7 @@ const bookshelf = require("../db/bookshelf_init");
 const FORGETTABLE_URL =
   process.env.FORGETTABLE_URL || "http://forgettable:8080";
 const REDIS_URL = process.env.REDIS_URL || "redis://redis/";
+const RESULTS_PER_PAGE = 500;
 
 const redis = new Redis(REDIS_URL);
 
@@ -22,8 +23,7 @@ const lockedFetch = lockingCache({
 
 async function getUserStats(
   hashtag,
-  orderBy = "edits",
-  orderDirection = "ASC"
+  { orderBy = "edits", orderDirection = "ASC", page = 1 }
 ) {
   const { knex } = bookshelf;
 
@@ -43,7 +43,8 @@ async function getUserStats(
       .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
       .where("raw_hashtags.hashtag", hashtag)
       .orderBy(`${orderBy}_rank`, orderDirection)
-      .limit(500);
+      .limit(RESULTS_PER_PAGE)
+      .offset((page - 1) * RESULTS_PER_PAGE);
 
     return rows.map(row => ({
       ...row,
@@ -59,13 +60,10 @@ async function getUserStats(
 }
 
 const getCachedUserStats = util.promisify(
-  lockedFetch((hashtag, orderBy, orderDirection, lock) =>
-    lock(`user-stats:${hashtag}:${orderBy}:${orderDirection}`, async unlock => {
+  lockedFetch((hashtag, options, lock) =>
+    lock(`user-stats:${hashtag}:${JSON.stringify(options)}`, async unlock => {
       try {
-        return unlock(
-          null,
-          await getUserStats(hashtag, orderBy, orderDirection)
-        );
+        return unlock(null, await getUserStats(hashtag, options));
       } catch (err) {
         return unlock(err);
       }
@@ -101,6 +99,15 @@ const validateOrderDirection = orderDirection =>
     ? orderDirection
     : undefined;
 
+const validatePage = page => {
+  page = Number(page);
+  if (page >= 1) {
+    return page;
+  }
+
+  return 1;
+};
+
 module.exports = [
   {
     method: "GET",
@@ -108,11 +115,11 @@ module.exports = [
     handler: async (req, res) => {
       try {
         return res(
-          await getCachedUserStats(
-            req.params.id,
-            validateOrderBy(req.query.order_by),
-            validateOrderDirection(req.query.order_direction)
-          )
+          await getCachedUserStats(req.params.id, {
+            orderBy: validateOrderBy(req.query.order_by),
+            orderDirection: validateOrderDirection(req.query.order_direction),
+            page: validatePage(req.query.page)
+          })
         );
       } catch (err) {
         return res(err);
