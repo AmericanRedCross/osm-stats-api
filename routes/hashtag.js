@@ -43,7 +43,7 @@ async function getUserStats(
       .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
       .where("raw_hashtags.hashtag", hashtag)
       .orderBy(`${orderBy}_rank`, orderDirection)
-      .limit(100);
+      .limit(500);
 
     return rows.map(row => ({
       ...row,
