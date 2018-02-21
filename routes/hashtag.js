@@ -22,7 +22,7 @@ const lockedFetch = lockingCache({
 
 async function getUserStats(
   hashtag,
-  orderBy = "edits_rank",
+  orderBy = "edits",
   orderDirection = "ASC"
 ) {
   const { knex } = bookshelf;
@@ -42,7 +42,7 @@ async function getUserStats(
       .join("users", "raw_hashtags_users.user_id", "users.id")
       .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
       .where("raw_hashtags.hashtag", hashtag)
-      .orderBy(orderBy, orderDirection)
+      .orderBy(`${orderBy}_rank`, orderDirection)
       .limit(100);
 
     return rows.map(row => ({
