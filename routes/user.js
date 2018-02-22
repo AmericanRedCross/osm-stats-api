@@ -5,11 +5,39 @@ const bookshelf = require("../db/bookshelf_init");
 const Promise = require("bluebird");
 const R = require("ramda");
 
+const RESULTS_PER_PAGE = 100;
+
+// TODO merge w/ version in routes/hashtag.js
+const validatePage = page => {
+  page = Number(page);
+  if (page >= 1) {
+    return page;
+  }
+
+  return 1;
+};
+
 module.exports = [
   {
     method: "GET",
     path: "/users",
     handler: async (req, res) => res(User.fetchAll({ columns: ["id", "name"] }))
+  },
+
+  {
+    method: "GET",
+    path: "/users/search",
+    handler: async (req, res) =>
+      res(
+        User.where("name", "LIKE", `${req.query.q}%`)
+          .orderBy("name")
+          .query(qb =>
+            qb
+              .limit(RESULTS_PER_PAGE)
+              .offset((validatePage(req.query.page) - 1) * RESULTS_PER_PAGE)
+          )
+          .fetchAll()
+      )
   },
 
   {
