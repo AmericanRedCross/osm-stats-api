@@ -5,6 +5,11 @@ ENV NPM_CONFIG_LOGLEVEL warn
 
 WORKDIR /opt/app/
 
+RUN \
+  apt update \
+  && apt install -y --no-install-recommends \
+    libsecret-1-0
+
 COPY package.json /opt/app/
 
 RUN npm install \
