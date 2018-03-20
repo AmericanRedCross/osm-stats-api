@@ -18,44 +18,21 @@ module.exports = [
     handler: async (req, res) => {
       const { knex } = bookshelf;
 
-      let startDate = new Date(0);
-      let endDate = new Date();
-
-      if (req.query.startdate != null) {
-        startDate = new Date(req.query.startdate);
-      }
-
-      if (req.query.enddate != null) {
-        endDate = new Date(req.query.enddate);
-      }
-
       let statsTable = knex
         .select(
-          knex.raw("COUNT(*) as changesets"),
-          knex.raw("COUNT(DISTINCT user_id) as users"),
-          knex.raw("SUM(road_km_mod + road_km_add) as roads"),
-          knex.raw("SUM(building_count_add + building_count_mod) as buildings"),
+          knex.raw("SUM(changesets) changesets"),
+          knex.raw("SUM(users) users"),
+          knex.raw("SUM(road_km_added + road_km_modified) as roads"),
+          knex.raw("SUM(buildings_added + buildings_modified) as buildings"),
           knex.raw(
-            "SUM(building_count_add + building_count_mod + road_count_add + road_count_mod + waterway_count_add) as edits"
+            "SUM(buildings_added + buildings_modified + roads_added + roads_modified + waterways_added + waterways_modified + pois_added + pois_modified) as edits"
           ),
-          knex.raw("MAX(changesets.created_at) as latest")
+          knex.raw("MAX(updated_at) as latest")
         )
-        .from("changesets")
-        .whereBetween("created_at", [startDate, endDate]);
+        .from("hashtag_stats");
 
       if (req.params.hashtag) {
-        const filteredTable = knex
-          .select("changeset_id")
-          .from("changesets_hashtags")
-          .join(
-            "hashtags",
-            "changesets_hashtags.hashtag_id",
-            "=",
-            "hashtags.id"
-          )
-          .where("hashtags.hashtag", "=", req.params.hashtag);
-
-        statsTable = statsTable.whereIn("id", filteredTable);
+        statsTable = statsTable.where("hashtag", "=", req.params.hashtag);
       }
 
       try {
@@ -64,10 +41,11 @@ module.exports = [
 
         return res({
           ...row,
+          hashtag: req.params.hashtag || "*",
           users: Number(row.users),
           changesets: Number(row.changesets),
           buildings: Number(row.buildings),
-          roads: Number(row.buildings),
+          roads: Number(row.roads),
           edits: Number(row.edits)
         });
       } catch (err) {
