@@ -31,18 +31,6 @@ services:
       - redis
     links:
       - redis
-  migrations:
-    image: mdillon/postgis:9.6
-    depends_on:
-      - postgresql
-    environment:
-      - DATABASE_URL=postgresql://mm:mm@postgresql/mm
-    env_file: .env
-    links:
-      - postgresql
-    command: sh -c "psql -d $$DATABASE_URL -f /tmp/db/missingmaps.sql"
-    volumes:
-      - ./db:/tmp/db
   redis:
     image: redis
   postgresql:
