@@ -32,7 +32,7 @@ async function getUserStats(
       .select(
         "user_id",
         "name",
-        "changesets",
+        "raw_hashtags_users.changesets",
         "edits",
         "buildings",
         knex.raw("road_km AS roads"),

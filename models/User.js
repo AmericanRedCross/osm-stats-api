@@ -1,5 +1,4 @@
 const bookshelf = require("../db/bookshelf_init");
-const R = require("ramda");
 
 require("./Changeset");
 require("./Badge");
@@ -18,53 +17,45 @@ const User = bookshelf.Model.extend({
     // Check if we're in a transaction
     const qb = trx || bookshelf.knex;
 
-    // Subquery to find the relevant changesets
-    const subquery = qb
-      .select("id")
-      .from("changesets")
-      .where("user_id", this.attributes.id);
-
-    // Get the country ids from the junction table
     return qb
-      .select("country_id", "name")
-      .from("changesets_countries")
-      .join("countries", "changesets_countries.country_id", "countries.id")
-      .where("changeset_id", "in", subquery)
-      .then(results => {
-        // Pluck the country_id from results and check uniqueness
-        const ids = R.uniq(R.map(R.prop("country_id"), results));
-        return [ids.length, results];
-      });
+      .select("name", "changesets")
+      .from("raw_countries")
+      .join(
+        "raw_countries_users",
+        "raw_countries_users.country_id",
+        "raw_countries.id"
+      )
+      .where("user_id", this.attributes.id)
+      .orderBy("changesets", "DESC")
+      .then(results =>
+        results.reduce(
+          (acc, obj) => ({
+            ...acc,
+            [obj.name]: Number(obj.changesets)
+          }),
+          {}
+        )
+      );
   },
   getHashtags: function(trx) {
     // Check if we're in a transaction
     const qb = trx || bookshelf.knex;
 
-    // Subquery to find the relevant changesets
-    const subquery = qb
-      .select("id")
-      .from("changesets")
-      .where("user_id", this.attributes.id);
-
-    // Get the hashtags by joining on the junction table
     return qb
-      .select("hashtag")
-      .from("changesets_hashtags")
-      .join("hashtags", "changesets_hashtags.hashtag_id", "hashtags.id")
-      .where("changeset_id", "in", subquery)
-      .then(results =>
-        R.countBy(R.identity)(R.map(R.prop("hashtag"), results))
-      );
-  },
-  getTimestamps: function(trx) {
-    // Check if we're in a transaction
-    const qb = trx || bookshelf.knex;
-
-    return qb
-      .select("created_at")
-      .from("changesets")
+      .select("hashtag", "changesets")
+      .from("raw_hashtags_users")
+      .join("raw_hashtags", "raw_hashtags_users.hashtag_id", "raw_hashtags.id")
       .where("user_id", this.attributes.id)
-      .then(results => R.map(R.prop("created_at"), results));
+      .orderBy("changesets", "DESC")
+      .then(results =>
+        results.reduce(
+          (acc, obj) => ({
+            ...acc,
+            [obj.hashtag]: Number(obj.changesets)
+          }),
+          {}
+        )
+      );
   }
 });
 

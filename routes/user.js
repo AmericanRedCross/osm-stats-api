@@ -1,9 +1,8 @@
 const Boom = require("boom");
-const User = require("../models/User");
-const Changeset = require("../models/Changeset");
+
 const bookshelf = require("../db/bookshelf_init");
-const Promise = require("bluebird");
-const R = require("ramda");
+const Changeset = require("../models/Changeset");
+const User = require("../models/User");
 
 const RESULTS_PER_PAGE = 100;
 
@@ -73,35 +72,23 @@ module.exports = [
           require: true
         });
 
-        const [
-          hashtags,
-          latest,
-          changesetDates,
-          countries,
-          changesets
-        ] = await Promise.all([
+        const { knex } = bookshelf;
+
+        const [hashtags, latest, changesetDays, countries] = await Promise.all([
           userObj.getHashtags(),
-          bookshelf
-            .knex("changesets")
+          knex("changesets")
             .select("id")
             .orderBy("created_at", "desc")
             .where("user_id", userObj.id)
             .limit(1),
-          bookshelf
-            .knex("changesets")
-            .select("created_at")
-            .where("user_id", userObj.id),
-          userObj.getCountries(),
-          bookshelf
-            .knex("changesets")
-            .count("user_id")
+          knex("changesets")
+            .distinct(knex.raw("date_trunc('day', created_at) AS day"))
             .where("user_id", userObj.id)
+            .orderBy("day"),
+          userObj.getCountries()
         ]);
 
-        const editTimes = R.map(R.prop("created_at"), changesetDates);
-        const countryCount = countries[0];
-        const countryList = R.countBy(R.prop("name"), countries[1]);
-        const changesetCount = changesets[0].count;
+        const editTimes = changesetDays.map(x => x.day);
         const user = userObj.toJSON({
           omitPivot: true
         });
@@ -122,14 +109,15 @@ module.exports = [
           total_tm_done_count: Number(user.total_tm_done_count),
           total_tm_val_count: Number(user.total_tm_val_count),
           total_tm_inval_count: Number(user.total_tm_inval_count),
-          changeset_count: changesetCount,
+          changeset_count: Number(user.changesets),
           latest: latest[0].id,
           edit_times: editTimes,
-          country_count: countryCount,
-          country_list: countryList,
+          country_count: Object.keys(countries).length,
+          country_list: countries,
           hashtags
         };
 
+        // TODO this can be done above when fetching the latest changeset id
         const changesetObj = await Changeset.where({
           id: serialized.latest
         }).fetch({ withRelated: ["hashtags", "countries"] });
