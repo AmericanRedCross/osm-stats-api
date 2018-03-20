@@ -103,54 +103,25 @@ module.exports = [
       const { hashtag } = req.params;
       const { knex } = bookshelf;
 
-      let startDate = new Date(0);
-      let endDate = new Date();
-
-      if (req.query.startdate != null) {
-        startDate = new Date(req.query.startdate);
-      }
-
-      if (req.query.enddate != null) {
-        endDate = new Date(req.query.enddate);
-      }
-
       try {
         const results = await knex
           .select(
-            knex.raw(
-              "SUM(building_count_add + building_count_mod + road_count_add + road_count_mod + waterway_count_add + poi_count_add) AS all_edits"
-            ),
-            knex.raw(
-              "SUM(building_count_add + building_count_mod) AS buildings"
-            ),
-            knex.raw("SUM(road_count_add + road_count_mod) AS roads"),
-            knex.raw("SUM(road_km_add + road_km_mod) AS road_kms"),
-            "users.name AS user_id",
-            "users.id AS user_number"
+            knex.raw("edits all_edits"),
+            "buildings",
+            "roads",
+            knex.raw("road_km road_kms"),
+            knex.raw("raw_users.name user_id"),
+            knex.raw("user_id user_number")
           )
-          .from("changesets")
-          .innerJoin(
-            knex
-              .distinct("changeset_id")
-              .select()
-              .from("changesets_hashtags")
-              .innerJoin(
-                "hashtags",
-                "changesets_hashtags.hashtag_id",
-                "hashtags.id"
-              )
-              .where({
-                hashtag
-              })
-              .as("filtered"),
-            "changesets.id",
-            "filtered.changeset_id"
+          .from("raw_hashtags_users")
+          .join("raw_users", "raw_hashtags_users.user_id", "raw_users.id")
+          .join(
+            "raw_hashtags",
+            "raw_hashtags.id",
+            "raw_hashtags_users.hashtag_id"
           )
-          .leftJoin("users", "users.id", "changesets.user_id")
-          .whereBetween("changesets.created_at", [startDate, endDate])
-          .whereNotNull("users.id")
-          .groupBy("users.name", "users.id")
-          .orderBy("all_edits", "desc")
+          .where("raw_hashtags.hashtag", hashtag)
+          .orderBy("edits_rank", "ASC")
           .limit(100);
 
         const data = results
