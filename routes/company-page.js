@@ -21,9 +21,15 @@ async function getHashtagSummary(hashtags, wildcards) {
       knex.raw("buildings_modified AS building_count_mod"),
       knex.raw("waterways_added AS waterway_count_add"),
       knex.raw("pois_added AS poi_count_add"),
+      knex.raw("pois_modified AS poi_count_mod"),
       knex.raw("road_km_added AS road_km_add"),
       knex.raw("road_km_modified AS road_km_mod"),
       knex.raw("waterway_km_added AS waterway_km_add"),
+      knex.raw("waterway_km_modified AS waterway_km_mod"),
+      knex.raw(
+        "(roads_added + roads_modified + waterways_added + waterways_modified + buildings_added + buildings_modified + pois_added + pois_modified) AS edits"
+      ),
+      "users",
       knex.raw("updated_at AS last_updated")
     )
     .from("hashtag_stats")
@@ -41,9 +47,13 @@ async function getHashtagSummary(hashtags, wildcards) {
       building_count_mod: Number(row.building_count_mod),
       waterway_count_add: Number(row.waterway_count_add),
       poi_count_add: Number(row.poi_count_add),
+      poi_count_mod: Number(row.poi_count_mod),
       road_km_add: Number(Number(row.road_km_add).toFixed(2)),
       road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
-      waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
+      waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2)),
+      waterway_km_mod: Number(Number(row.waterway_km_mod).toFixed(2)),
+      edits: Number(row.edits),
+      users: Number(row.users)
     }))
     .reduce((obj, v) => {
       obj[v.hashtag] = v;
