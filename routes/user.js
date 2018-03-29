@@ -47,16 +47,21 @@ module.exports = [
         return res(Boom.badRequest("Valid user id required"));
       }
 
-      const where = {};
+      const { knex } = bookshelf;
+      let query;
 
       if (req.params.id.match(/^\d+$/)) {
-        where.id = req.params.id;
+        query = User.where({
+          id: req.params.id
+        });
       } else {
-        where.name = req.params.id;
+        query = User.where(
+          knex.raw("lower(name) = ?", [req.params.id.toLowerCase()])
+        );
       }
 
       try {
-        const userObj = await User.where(where).fetch({
+        const userObj = await query.fetch({
           withRelated: [
             {
               badges: qb =>
@@ -71,8 +76,6 @@ module.exports = [
           ],
           require: true
         });
-
-        const { knex } = bookshelf;
 
         const [hashtags, latest, changesetDays, countries] = await Promise.all([
           userObj.getHashtags(),

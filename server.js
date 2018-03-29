@@ -52,4 +52,6 @@ server.on("request-error", (req, err) => {
 
 server.start(() => console.log("Server running at:", server.info.uri));
 
+process.on("unhandledRejection", err => console.warn(err.stack));
+
 module.exports = server;

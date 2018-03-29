@@ -39,7 +39,7 @@ async function getUserStats(
         knex.raw("updated_at AS created_at")
       )
       .from("raw_hashtags_users")
-      .join("users", "raw_hashtags_users.user_id", "users.id")
+      .join("raw_users", "raw_hashtags_users.user_id", "raw_users.id")
       .join("raw_hashtags", "raw_hashtags.id", "raw_hashtags_users.hashtag_id")
       .where("raw_hashtags.hashtag", hashtag)
       .orderBy(`${orderBy}_rank`, orderDirection)

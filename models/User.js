@@ -18,7 +18,7 @@ const User = bookshelf.Model.extend({
     const qb = trx || bookshelf.knex;
 
     return qb
-      .select("name", "changesets")
+      .select("code", "changesets")
       .from("raw_countries")
       .join(
         "raw_countries_users",
@@ -31,7 +31,7 @@ const User = bookshelf.Model.extend({
         results.reduce(
           (acc, obj) => ({
             ...acc,
-            [obj.name]: Number(obj.changesets)
+            [obj.code]: Number(obj.changesets)
           }),
           {}
         )
