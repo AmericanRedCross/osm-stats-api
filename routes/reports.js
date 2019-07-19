@@ -2,6 +2,44 @@ const Boom = require("boom");
 const json2csv = require("json2csv");
 
 const bookshelf = require("../db/bookshelf_init");
+const supportedOutputs = ["csv", "json"];
+
+const initTotalObj = sourceObj => {
+  let targetObj = {};
+  for (let property in sourceObj) {
+    targetObj[property] = 0;
+  }
+  return targetObj;
+};
+
+const sumUpResults = (...objs) => {
+  return objs.reduce((a, b) => {
+    for (let k in b) {
+      if (b.hasOwnProperty(k)) {
+        if (typeof b[k] === "number") {
+          a[k] = (a[k] || 0) + b[k];
+        } else a[k] = null;
+      }
+    }
+    return a;
+  }, {});
+};
+
+const parseResults = row => {
+  row = {
+    ...row,
+    road_count_add: parseInt(row.road_count_add, 10),
+    road_count_mod: parseInt(row.road_count_mod, 10),
+    building_count_add: parseInt(row.building_count_add, 10),
+    building_count_mod: parseInt(row.building_count_mod, 10),
+    waterway_count_add: parseInt(row.waterway_count_add, 10),
+    poi_count_add: parseInt(row.poi_count_add, 10),
+    road_km_add: Number(Number(row.road_km_add).toFixed(2)),
+    road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
+    waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
+  };
+  return row;
+};
 
 module.exports = [
   {
@@ -16,6 +54,7 @@ module.exports = [
 
       let startDate = new Date(0);
       let endDate = new Date();
+      let outputType = "";
 
       if (req.query.startdate != null) {
         startDate = new Date(req.query.startdate);
@@ -23,6 +62,18 @@ module.exports = [
 
       if (req.query.enddate != null) {
         endDate = new Date(req.query.enddate);
+      }
+
+      try {
+        if (req.query.output != null) {
+          if (supportedOutputs.includes(req.query.output)) {
+            outputType = req.query.output;
+          } else throw new Error();
+        } else {
+          outputType = "csv";
+        }
+      } catch (err) {
+        return res(Boom.notFound("Specified Output Format is not supported"));
       }
 
       const wildcards = hashtags
@@ -65,21 +116,17 @@ module.exports = [
           .whereBetween("created_at", [startDate, endDate])
           .groupBy("filtered.hashtag");
 
-        const data = results.map(row => ({
-          ...row,
-          road_count_add: parseInt(row.road_count_add, 10),
-          road_count_mod: parseInt(row.road_count_mod, 10),
-          building_count_add: parseInt(row.building_count_add, 10),
-          building_count_mod: parseInt(row.building_count_mod, 10),
-          waterway_count_add: parseInt(row.waterway_count_add, 10),
-          poi_count_add: parseInt(row.poi_count_add, 10),
-          road_km_add: Number(Number(row.road_km_add).toFixed(2)),
-          road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
-          waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
-        }));
+        let hashtagTotal = initTotalObj(results[0]);
+        let data = results.map(function(row) {
+          let parsedRow = parseResults(row);
+          hashtagTotal = sumUpResults(hashtagTotal, parsedRow);
+          return parsedRow;
+        });
+        hashtagTotal.hashtag = "TOTAL";
+        data.push(hashtagTotal);
 
-        return res(
-          json2csv({
+        if (outputType === "csv") {
+          data = json2csv({
             data,
             fields: [
               {
@@ -123,10 +170,14 @@ module.exports = [
                 value: "poi_count_add"
               }
             ]
-          })
-        )
-          .type("text/csv")
-          .header("Content-Disposition", "attachment; filename=hashtags.csv");
+          });
+        }
+        return res(data)
+          .type("text/" + outputType)
+          .header(
+            "Content-Disposition",
+            "attachment; filename=hashtags." + outputType
+          );
       } catch (err) {
         return res(err);
       }
@@ -146,6 +197,7 @@ module.exports = [
 
       let startDate = new Date(0);
       let endDate = new Date();
+      let outputType = "";
 
       if (req.query.startdate != null) {
         startDate = new Date(req.query.startdate);
@@ -153,6 +205,18 @@ module.exports = [
 
       if (req.query.enddate != null) {
         endDate = new Date(req.query.enddate);
+      }
+
+      try {
+        if (req.query.output != null) {
+          if (supportedOutputs.includes(req.query.output)) {
+            outputType = req.query.output;
+          } else throw new Error();
+        } else {
+          outputType = "csv";
+        }
+      } catch (err) {
+        return res(Boom.notFound("Specified Output Format is not supported"));
       }
 
       try {
@@ -174,21 +238,17 @@ module.exports = [
           .whereBetween("changesets.created_at", [startDate, endDate])
           .groupBy("name");
 
-        const data = results.map(row => ({
-          ...row,
-          road_count_add: parseInt(row.road_count_add, 10),
-          road_count_mod: parseInt(row.road_count_mod, 10),
-          building_count_add: parseInt(row.building_count_add, 10),
-          building_count_mod: parseInt(row.building_count_mod, 10),
-          waterway_count_add: parseInt(row.waterway_count_add, 10),
-          poi_count_add: parseInt(row.poi_count_add, 10),
-          road_km_add: Number(Number(row.road_km_add).toFixed(2)),
-          road_km_mod: Number(Number(row.road_km_mod).toFixed(2)),
-          waterway_km_add: Number(Number(row.waterway_km_add).toFixed(2))
-        }));
+        let userTotal = initTotalObj(results[0]);
+        let data = results.map(function(row) {
+          let parsedRow = parseResults(row);
+          userTotal = sumUpResults(userTotal, parsedRow);
+          return parsedRow;
+        });
+        userTotal.name = "TOTAL";
+        data.push(userTotal);
 
-        return res(
-          json2csv({
+        if (outputType === "csv") {
+          data = json2csv({
             data,
             fields: [
               {
@@ -232,10 +292,15 @@ module.exports = [
                 value: "poi_count_add"
               }
             ]
-          })
-        )
-          .type("text/csv")
-          .header("Content-Disposition", "attachment; filename=users.csv");
+          });
+        }
+
+        return res(data)
+          .type("text/" + outputType)
+          .header(
+            "Content-Disposition",
+            "attachment; filename=users." + outputType
+          );
       } catch (err) {
         return res(err);
       }
