@@ -1,17 +1,19 @@
 const util = require("util");
+const json2csv = require("json2csv");
 
 const Boom = require("boom");
 const bookshelf = require("../db/bookshelf_init");
 const lockingCache = require("locking-cache");
+const supportedOutputs = ["csv", "json"];
 
 const lockedFetch = lockingCache({
   maxAge: 1000 * 20,
   stale: true
 });
 
-async function getHashtagSummary(hashtags, wildcards) {
+async function getHashtagSummary(hashtags, wildcards, outputType) {
   const { knex } = bookshelf;
-
+  let csvData = [];
   const results = await knex
     .select(
       "hashtag",
@@ -56,22 +58,29 @@ async function getHashtagSummary(hashtags, wildcards) {
       users: Number(row.users)
     }))
     .reduce((obj, v) => {
-      obj[v.hashtag] = v;
-      delete v.hashtag;
-
-      return obj;
+      if (outputType === "csv") {
+        csvData.push(v);
+        return csvData;
+      } else {
+        obj[v.hashtag] = v;
+        delete v.hashtag;
+        return obj;
+      }
     }, {});
 }
 
 const getCachedHashtagSummary = util.promisify(
-  lockedFetch((hashtags, wildcards, lock) =>
+  lockedFetch((hashtags, wildcards, outputType, lock) =>
     lock(
       `hashtag-summary:${JSON.stringify(hashtags)}:${JSON.stringify(
         wildcards
-      )}`,
+      )}:outputType`,
       async unlock => {
         try {
-          return unlock(null, await getHashtagSummary(hashtags, wildcards));
+          return unlock(
+            null,
+            await getHashtagSummary(hashtags, wildcards, outputType)
+          );
         } catch (err) {
           return unlock(err);
         }
@@ -91,13 +100,99 @@ module.exports = [
 
       let hashtags = req.params.hashtags.split(",").map(x => x.trim());
 
+      let outputType = "";
+      try {
+        if (req.query.output != null) {
+          if (supportedOutputs.indexOf(req.query.output) < 0) {
+            throw new Error();
+          } else outputType = req.query.output;
+        } else {
+          outputType = "json";
+        }
+      } catch (err) {
+        return res(Boom.notFound("Specified Output Format is not supported"));
+      }
+
       const wildcards = hashtags
         .filter(x => x.match(/\*$/))
         .map(x => x.replace(/\*/, "%"));
       hashtags = hashtags.filter(x => !x.match(/\*$/));
 
       try {
-        return res(await getCachedHashtagSummary(hashtags, wildcards));
+        let data = await getCachedHashtagSummary(
+          hashtags,
+          wildcards,
+          outputType
+        );
+        if (outputType === "csv") {
+          data = json2csv({
+            data,
+            fields: [
+              {
+                label: "Hashtag",
+                value: "hashtag"
+              },
+              {
+                label: "Roads Added",
+                value: "road_count_add"
+              },
+              {
+                label: "Roads Modified",
+                value: "road_count_mod"
+              },
+              {
+                label: "Buildings Added",
+                value: "building_count_add"
+              },
+              {
+                label: "Buildings Modified",
+                value: "building_count_mod"
+              },
+              {
+                label: "Waterways Added",
+                value: "waterway_count_add"
+              },
+              {
+                label: "POIs Added",
+                value: "poi_count_add"
+              },
+              {
+                label: "POIs Modified",
+                value: "poi_count_mod"
+              },
+              {
+                label: "Roads Added (km)",
+                value: "road_km_add"
+              },
+              {
+                label: "Roads Modified (km)",
+                value: "road_km_mod"
+              },
+              {
+                label: "Waterways Added (km)",
+                value: "waterway_km_add"
+              },
+              {
+                label: "Waterways Modified (km)",
+                value: "waterway_km_mod"
+              },
+              {
+                label: "Edits",
+                value: "edits"
+              },
+              {
+                label: "Users",
+                value: "users"
+              }
+            ]
+          });
+          return res(data)
+            .type("text/csv")
+            .header(
+              "Content-Disposition",
+              "attachment; filename=group-summary-hashtags.csv"
+            );
+        } else return res(data);
       } catch (err) {
         return res(err);
       }
