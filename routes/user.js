@@ -56,7 +56,7 @@ module.exports = [
         });
       } else {
         query = User.where(
-          knex.raw("lower(name) = ?", [req.params.id.toLowerCase()])
+          knex.raw("name = ?", [req.params.id])
         );
       }
 
